@@ -294,4 +294,5 @@ answer — but it is a project, not a packaging step.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — current system design and invariants
 - [AUDIO_JOURNEY.md](AUDIO_JOURNEY.md) — how the audio backend reached cpal
 - [DECISIONS.md](DECISIONS.md) — accepted design decisions
+- [HARMONYOS_BACKEND.md](HARMONYOS_BACKEND.md) — deeper feasibility and milestone plan for a native OHOS backend
 - [README.md](../README.md) — player-facing documentation

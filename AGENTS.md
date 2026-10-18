@@ -70,6 +70,7 @@ The default branch is `main`, and `origin/main` is its upstream.
 | `docs/DECISIONS.md` | accepted design decisions and their trade-offs |
 | `docs/AUDIO_JOURNEY.md` | narrative history of the engine-audio redesign |
 | `docs/PORTABILITY.md` | platform options, C ABI hybrid and HarmonyOS plan |
+| `docs/HARMONYOS_BACKEND.md` | native OHOS miniquad/macroquad backend feasibility plan |
 | `README.md` | player-facing documentation and controls |
 
 ## Gameplay model in one screen
