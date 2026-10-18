@@ -209,8 +209,9 @@ the docs in the same commit.
 - No two-player mode, force feedback, configurable controls or remappable
   keys.
 - The game is a native desktop build; no WASM/web target is set up.
-- Audio loops are deliberately synthetic. Engine buckets crossfade and the
-  one-second loop seam is folded to avoid clicks; timbre remains period-styled.
+- Audio loops are deliberately synthetic. Engine buckets crossfade, and the
+  one-second loop is generated with circularly filtered noise so it has no
+  seam; timbre remains period-styled.
 - There is no CI workflow yet. A macOS job running the four verification gates
   would be useful.
 - High-score persistence is intentionally a tiny dotfile read/write with no

@@ -95,10 +95,11 @@ crash, extension, game-over and overtake sounds. Audio failures are tolerated:
 missing sounds simply do not play.
 
 The engine bus uses equal-power crossfades between adjacent buckets when speed
-crosses a threshold, so pitch changes do not restart the sound abruptly. Each
-one-second loop also folds its extra tail into the head with a short crossfade:
-filtered noise is not naturally periodic, and without this the loop would click
-on every wrap. Both properties are covered by audio tests.
+crosses a threshold, so pitch changes do not restart the sound abruptly. The
+one-second noise texture is produced by running a one-pole filter circularly
+over white noise, so it is genuinely periodic; this avoids the fade-out dip
+and seam click that a tail crossfade introduced. Both properties are covered
+by audio tests.
 
 ### `src/input.rs`
 
