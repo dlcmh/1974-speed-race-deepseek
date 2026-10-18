@@ -204,10 +204,10 @@ crossfade feels seamless. The listening reports drove every iteration here.
 
 ## The commits, if you want the archaeology
 
-- `b167dc5` — raised engine and effect levels
-- `3d38f35` — first seam fold, bucket crossfades
-- `c3a1a75` — circular-filtered periodic noise
-- `ae566bc` — replaced the looped engine with the continuous cpal synth
+- [`b167dc5` — raised engine and effect levels](https://github.com/dlcmh/1974-speed-race-deepseek/commit/b167dc5692187939d0013557f01f753212b2a81a)
+- [`3d38f35` — first seam fold, bucket crossfades](https://github.com/dlcmh/1974-speed-race-deepseek/commit/3d38f3566bef82d5c5371dc9e4bf74dfc49aa05b)
+- [`c3a1a75` — circular-filtered periodic noise](https://github.com/dlcmh/1974-speed-race-deepseek/commit/c3a1a75461421d37fedb52f0dfd6ee82c8e77e11)
+- [`ae566bc` — replaced the looped engine with the continuous cpal synth](https://github.com/dlcmh/1974-speed-race-deepseek/commit/ae566bc880b87c56b48bd7b5e4f63a61c96de7de)
 
 The current implementation is in [src/audio.rs](../src/audio.rs). The broader
 system design is in [ARCHITECTURE.md](ARCHITECTURE.md), and the decision record
