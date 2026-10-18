@@ -1,250 +1,317 @@
-//! Tiny procedural arcade sound bank.
+//! Real-time procedural arcade audio.
 //!
-//! Every sound is synthesised into a mono 16-bit WAV in memory and handed to
-//! macroquad's mixer. There are no audio assets to ship, and no unsafe code.
+//! The engine is a continuously running software oscillator rendered inside
+//! the audio callback. It is not a looping WAV, so there is no loop seam and
+//! no restart when the revs change. One-shot effects are synthesised in the
+//! same callback. No audio assets or unsafe code are involved.
 
-use macroquad::audio::{
-    PlaySoundParams, Sound, load_sound_from_bytes, play_sound, set_sound_volume, stop_sound,
-};
+use std::f32::consts::TAU;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::mpsc::{self, Receiver, Sender};
 
-const SAMPLE_RATE: u32 = 22_050;
-const ENGINE_BUCKETS: usize = 6;
-const ENGINE_FADE_SECONDS: f32 = 0.35;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{FromSample, SampleFormat, SizedSample, StreamConfig};
+
+#[derive(Clone, Copy)]
+enum Cue {
+    Countdown,
+    Go,
+    Crash,
+    Extend,
+    GameOver,
+    Pass,
+}
+
+struct Shared {
+    running: AtomicBool,
+    muted: AtomicBool,
+    speed: AtomicU32,
+    throttle: AtomicU32,
+}
+
+impl Shared {
+    fn new() -> Self {
+        Self {
+            running: AtomicBool::new(false),
+            muted: AtomicBool::new(false),
+            speed: AtomicU32::new(0.0f32.to_bits()),
+            throttle: AtomicU32::new(0.0f32.to_bits()),
+        }
+    }
+
+    fn speed(&self) -> f32 {
+        f32::from_bits(self.speed.load(Ordering::Relaxed))
+    }
+
+    fn throttle(&self) -> f32 {
+        f32::from_bits(self.throttle.load(Ordering::Relaxed))
+    }
+}
 
 pub struct ArcadeAudio {
-    engines: Vec<Sound>,
-    countdown: Option<Sound>,
-    go: Option<Sound>,
-    crash: Option<Sound>,
-    extend: Option<Sound>,
-    game_over: Option<Sound>,
-    pass: Option<Sound>,
-    /// Bucket that is currently fading in (or fully active).
-    engine_bucket: Option<usize>,
-    /// Outgoing bucket during a pitch crossfade.
-    engine_previous: Option<usize>,
-    engine_fade: f32,
+    shared: Arc<Shared>,
+    cue_tx: Sender<Cue>,
+    /// Dropping this sender tells the audio thread to release its stream.
+    _stop_tx: Sender<()>,
     pub muted: bool,
 }
 
 impl ArcadeAudio {
-    pub async fn load() -> Self {
-        let mut engines = Vec::new();
-        for bucket in 0..ENGINE_BUCKETS {
-            if let Ok(sound) = load_sound_from_bytes(&engine_loop(bucket)).await {
-                engines.push(sound);
-            }
-        }
+    pub fn load() -> Self {
+        let shared = Arc::new(Shared::new());
+        let (cue_tx, cue_rx) = mpsc::channel();
+        let (stop_tx, stop_rx) = mpsc::channel();
+
+        let audio_shared = Arc::clone(&shared);
+        std::thread::Builder::new()
+            .name("speed-race-audio".to_owned())
+            .spawn(move || {
+                if let Err(error) = run_audio(audio_shared, cue_rx, stop_rx) {
+                    eprintln!("Speed Race audio unavailable: {error}");
+                }
+            })
+            .ok();
 
         Self {
-            engines,
-            countdown: load_sound_from_bytes(&tone(660.0, 0.11, 0.9)).await.ok(),
-            go: load_sound_from_bytes(&tone(990.0, 0.26, 0.9)).await.ok(),
-            crash: load_sound_from_bytes(&crash_noise()).await.ok(),
-            extend: load_sound_from_bytes(&extend_chime()).await.ok(),
-            game_over: load_sound_from_bytes(&game_over_jingle()).await.ok(),
-            pass: load_sound_from_bytes(&tone(1_320.0, 0.035, 0.45))
-                .await
-                .ok(),
-            engine_bucket: None,
-            engine_previous: None,
-            engine_fade: 1.0,
+            shared,
+            cue_tx,
+            _stop_tx: stop_tx,
             muted: false,
         }
     }
 
     pub fn toggle_mute(&mut self) {
         self.muted = !self.muted;
+        self.shared.muted.store(self.muted, Ordering::Relaxed);
         if self.muted {
-            self.stop_engine();
+            self.shared.running.store(false, Ordering::Relaxed);
         }
     }
 
-    /// Keep one looping engine sample alive and shift to a higher-pitched
-    /// sample as the revs rise. It is crude, but it reads as a 1974 arcade
-    /// engine rather than a modern sample library.
-    pub fn sync_engine(&mut self, active: bool, speed: f32, throttle: f32, dt: f32) {
-        if self.muted || !active || self.engines.is_empty() {
-            self.stop_engine();
-            return;
-        }
-
-        let ratio = (speed / 240.0).clamp(0.0, 1.0);
-        let bucket = ((ratio * (self.engines.len() - 1) as f32).round() as usize)
-            .min(self.engines.len() - 1);
-        let volume = engine_volume(throttle, ratio);
-
-        match self.engine_bucket {
-            None => {
-                // Starting from silence: no crossfade is needed.
-                play_sound(
-                    &self.engines[bucket],
-                    PlaySoundParams {
-                        looped: true,
-                        volume,
-                    },
-                );
-                self.engine_bucket = Some(bucket);
-                self.engine_previous = None;
-                // Fade up from silence instead of starting a loop at an
-                // arbitrary non-zero sample.
-                self.engine_fade = 0.0;
-            }
-            Some(current) if current != bucket => {
-                if self.engine_previous == Some(bucket) {
-                    // The player crossed back over the same threshold during
-                    // a fade. Reversing the two voices avoids a restart click.
-                    self.engine_bucket = Some(bucket);
-                    self.engine_previous = Some(current);
-                    self.engine_fade = 1.0 - self.engine_fade;
-                } else {
-                    // Two voices are enough for normal driving. If another
-                    // bucket change lands mid-fade, drop the oldest voice and
-                    // fade from the one that is currently audible.
-                    if let Some(previous) = self.engine_previous.take() {
-                        if previous != current {
-                            stop_sound(&self.engines[previous]);
-                        }
-                    }
-                    play_sound(
-                        &self.engines[bucket],
-                        PlaySoundParams {
-                            looped: true,
-                            volume: 0.0,
-                        },
-                    );
-                    self.engine_previous = Some(current);
-                    self.engine_bucket = Some(bucket);
-                    self.engine_fade = 0.0;
-                }
-            }
-            _ => {}
-        }
-
-        self.engine_fade = (self.engine_fade + dt / ENGINE_FADE_SECONDS).min(1.0);
-        let t = self.engine_fade;
-        // Equal-power fades avoid a volume dip in the middle of the handover.
-        let incoming_gain = (t * std::f32::consts::FRAC_PI_2).sin();
-        let outgoing_gain = (t * std::f32::consts::FRAC_PI_2).cos();
-
-        if let Some(current) = self.engine_bucket {
-            set_sound_volume(&self.engines[current], volume * incoming_gain);
-        }
-        if let Some(previous) = self.engine_previous {
-            set_sound_volume(&self.engines[previous], volume * outgoing_gain);
-            if self.engine_fade >= 1.0 {
-                stop_sound(&self.engines[previous]);
-                self.engine_previous = None;
-            }
-        }
+    /// Feed the continuous engine synth. Pitch and level follow speed and
+    /// throttle; there is no sample switching to click or gap.
+    pub fn sync_engine(&mut self, active: bool, speed: f32, throttle: f32) {
+        let running = active && !self.muted;
+        self.shared.running.store(running, Ordering::Relaxed);
+        self.shared
+            .speed
+            .store(speed.clamp(0.0, 240.0).to_bits(), Ordering::Relaxed);
+        self.shared
+            .throttle
+            .store(throttle.clamp(0.0, 1.0).to_bits(), Ordering::Relaxed);
     }
 
     pub fn stop_engine(&mut self) {
-        let current = self.engine_bucket.take();
-        let previous = self.engine_previous.take();
-        if let Some(bucket) = current {
-            stop_sound(&self.engines[bucket]);
-        }
-        if let Some(bucket) = previous {
-            if current != Some(bucket) {
-                stop_sound(&self.engines[bucket]);
-            }
-        }
+        self.shared.running.store(false, Ordering::Relaxed);
     }
 
     pub fn countdown(&self) {
-        self.play(&self.countdown, 1.0);
+        self.send(Cue::Countdown);
     }
 
     pub fn go(&self) {
-        self.play(&self.go, 1.0);
+        self.send(Cue::Go);
     }
 
     pub fn crash(&self) {
-        self.play(&self.crash, 1.0);
+        self.send(Cue::Crash);
     }
 
     pub fn extend(&self) {
-        self.play(&self.extend, 1.0);
+        self.send(Cue::Extend);
     }
 
     pub fn game_over(&self) {
-        self.play(&self.game_over, 1.0);
+        self.send(Cue::GameOver);
     }
 
     pub fn pass(&self) {
-        self.play(&self.pass, 0.8);
+        self.send(Cue::Pass);
     }
 
-    fn play(&self, sound: &Option<Sound>, volume: f32) {
-        if self.muted {
-            return;
-        }
-        if let Some(sound) = sound {
-            play_sound(
-                sound,
-                PlaySoundParams {
-                    looped: false,
-                    volume,
-                },
-            );
+    fn send(&self, cue: Cue) {
+        if !self.muted {
+            let _ = self.cue_tx.send(cue);
         }
     }
 }
 
-impl Drop for ArcadeAudio {
-    fn drop(&mut self) {
-        self.stop_engine();
+fn run_audio(
+    shared: Arc<Shared>,
+    cues: Receiver<Cue>,
+    stop_rx: Receiver<()>,
+) -> Result<(), String> {
+    let host = cpal::default_host();
+    let device = host
+        .default_output_device()
+        .ok_or_else(|| "no default output device".to_owned())?;
+    let supported = device
+        .default_output_config()
+        .map_err(|error| format!("no default output config: {error}"))?;
+    let sample_format = supported.sample_format();
+    let config = supported.config();
+
+    let stream = match sample_format {
+        SampleFormat::F32 => build_stream::<f32>(&device, &config, shared, cues),
+        SampleFormat::F64 => build_stream::<f64>(&device, &config, shared, cues),
+        SampleFormat::I16 => build_stream::<i16>(&device, &config, shared, cues),
+        SampleFormat::I32 => build_stream::<i32>(&device, &config, shared, cues),
+        SampleFormat::U16 => build_stream::<u16>(&device, &config, shared, cues),
+        SampleFormat::U32 => build_stream::<u32>(&device, &config, shared, cues),
+        other => Err(format!("unsupported sample format: {other}")),
     }
+    .map_err(|error| format!("could not open output stream: {error}"))?;
+
+    stream
+        .play()
+        .map_err(|error| format!("could not start output stream: {error}"))?;
+
+    // Keep the stream alive until the app drops ArcadeAudio.
+    let _ = stop_rx.recv();
+    Ok(())
 }
 
-/// Level for the looping engine bus.
-///
-/// The original mix was extremely quiet on laptop speakers. Keep the idle
-/// level clearly present and let throttle raise it without getting close to
-/// the mixer's clipping ceiling.
-fn engine_volume(throttle: f32, speed_ratio: f32) -> f32 {
-    0.30 + 0.35 * throttle.clamp(0.0, 1.0) + 0.18 * speed_ratio.clamp(0.0, 1.0)
+fn build_stream<T>(
+    device: &cpal::Device,
+    config: &StreamConfig,
+    shared: Arc<Shared>,
+    cues: Receiver<Cue>,
+) -> Result<cpal::Stream, String>
+where
+    T: SizedSample + FromSample<f32>,
+{
+    let channels = config.channels.max(1) as usize;
+    let sample_rate = config.sample_rate as f32;
+    let mut mixer = Mixer::new(sample_rate);
+
+    device
+        .build_output_stream(
+            *config,
+            move |data: &mut [T], _| mixer.render(data, channels, &shared, &cues),
+            |error| eprintln!("Speed Race audio stream error: {error}"),
+            None,
+        )
+        .map_err(|error| error.to_string())
 }
 
-fn periodic_noise(bucket: usize) -> Vec<f32> {
-    // A one-pole filter run circularly over one second of white noise. After
-    // a few warm-up cycles the filter state at the loop boundary is the same
-    // as it would be after any other sample, so the result is periodic and
-    // can be looped without a seam click or a fade-out dip.
-    let n = SAMPLE_RATE as usize;
-    let mut lcg = 0x1974_0055u32.wrapping_add((bucket as u32).wrapping_mul(0x9E37_79B9));
-    let mut white = Vec::with_capacity(n);
-    for _ in 0..n {
-        lcg = lcg.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
-        white.push((lcg >> 8) as f32 / 8_388_608.0 - 1.0);
+struct Mixer {
+    engine: Engine,
+    voices: [Option<Voice>; 8],
+    sample_rate: f32,
+}
+
+impl Mixer {
+    fn new(sample_rate: f32) -> Self {
+        Self {
+            engine: Engine::new(sample_rate),
+            voices: [const { None }; 8],
+            sample_rate,
+        }
     }
 
-    let mut low = 0.0f32;
-    let mut high = 0.0f32;
-    let mut noise = vec![0.0f32; n];
-    for pass in 0..6 {
-        for (i, input) in white.iter().copied().enumerate() {
-            low += (input - low) * 0.035;
-            high += (input - high) * 0.24;
-            if pass == 5 {
-                noise[i] = low * 0.7 + high * 0.3;
+    fn render<T>(&mut self, data: &mut [T], channels: usize, shared: &Shared, cues: &Receiver<Cue>)
+    where
+        T: SizedSample + FromSample<f32>,
+    {
+        while let Ok(cue) = cues.try_recv() {
+            self.add_voice(cue);
+        }
+
+        let muted = shared.muted.load(Ordering::Relaxed);
+        if muted {
+            for voice in &mut self.voices {
+                *voice = None;
+            }
+        }
+
+        for frame in data.chunks_mut(channels) {
+            // Keep advancing the engine while muted so its amplitude envelope
+            // reaches zero and unmuting cannot produce a sudden jump.
+            let engine_sample = self.engine.next_sample(shared);
+            let mut sample = if muted { 0.0 } else { engine_sample };
+
+            if !muted {
+                for slot in &mut self.voices {
+                    if let Some(voice) = slot {
+                        if voice.finished() {
+                            *slot = None;
+                        } else {
+                            sample += voice.next_sample();
+                        }
+                    }
+                }
+            }
+
+            let sample = sample.clamp(-1.0, 1.0);
+            let value = T::from_sample(sample);
+            for output in frame.iter_mut() {
+                *output = value;
             }
         }
     }
-    noise
+
+    fn add_voice(&mut self, cue: Cue) {
+        let voice = Voice::new(cue, self.sample_rate);
+        if let Some(slot) = self.voices.iter_mut().find(|slot| slot.is_none()) {
+            *slot = Some(voice);
+        } else if let Some(slot) = self.voices.first_mut() {
+            *slot = Some(voice);
+        }
+    }
 }
 
-fn engine_samples(bucket: usize) -> Vec<f32> {
-    let fundamental = 54.0 + bucket as f32 * 13.0;
-    let n = SAMPLE_RATE as usize;
-    let noise = periodic_noise(bucket);
-    let mut samples = Vec::with_capacity(n);
+struct Engine {
+    phase: f32,
+    frequency: f32,
+    amplitude: f32,
+    noise: f32,
+    rng: u32,
+    sample_rate: f32,
+    time: f32,
+}
 
-    for (i, &noise_sample) in noise.iter().enumerate() {
-        let t = i as f32 / SAMPLE_RATE as f32;
-        let phase = t * fundamental * std::f32::consts::TAU;
-        let wobble = 1.0 + 0.018 * (t * 3.0 * std::f32::consts::TAU).sin();
+impl Engine {
+    fn new(sample_rate: f32) -> Self {
+        Self {
+            phase: 0.0,
+            frequency: 54.0,
+            amplitude: 0.0,
+            noise: 0.0,
+            rng: 0x1974_0055,
+            sample_rate,
+            time: 0.0,
+        }
+    }
+
+    fn next_sample(&mut self, shared: &Shared) -> f32 {
+        let speed_ratio = (shared.speed() / 240.0).clamp(0.0, 1.0);
+        let throttle = shared.throttle().clamp(0.0, 1.0);
+        let running = shared.running.load(Ordering::Relaxed);
+
+        let target_frequency = 54.0 + 72.0 * speed_ratio + 8.0 * throttle;
+        let target_amplitude = if running {
+            0.20 + 0.25 * throttle + 0.10 * speed_ratio
+        } else {
+            0.0
+        };
+
+        // Smooth both pitch and level so pause/resume and rev changes glide.
+        let freq_smoothing = 1.0 - (-1.0 / (0.045 * self.sample_rate)).exp();
+        let amp_time = if target_amplitude > self.amplitude {
+            0.018
+        } else {
+            0.10
+        };
+        let amp_smoothing = 1.0 - (-1.0 / (amp_time * self.sample_rate)).exp();
+
+        self.frequency += (target_frequency - self.frequency) * freq_smoothing;
+        self.amplitude += (target_amplitude - self.amplitude) * amp_smoothing;
+        self.time += 1.0 / self.sample_rate;
+
+        self.phase = (self.phase + self.frequency / self.sample_rate).fract();
+        let phase = self.phase * TAU;
+        let wobble = 1.0 + 0.012 * (self.time * TAU * 3.0).sin();
 
         let mut sample = (phase * wobble).sin() * 0.52
             + (phase * 2.0).sin() * 0.23
@@ -252,121 +319,118 @@ fn engine_samples(bucket: usize) -> Vec<f32> {
             + (phase * 4.0).sin() * 0.06
             + (phase * 5.0).sin() * 0.05
             + (phase * 7.0).sin() * 0.035;
-        sample += noise_sample * (0.06 + 0.03 * bucket as f32);
-        // A little valve-like compression keeps the loop warm instead of
-        // fizzy when several harmonics line up. The added upper harmonics
-        // give the engine presence on small laptop speakers.
-        samples.push((sample * 1.8).tanh() * 0.55);
+
+        self.rng = self.rng.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+        let white = (self.rng >> 8) as f32 / 8_388_608.0 - 1.0;
+        self.noise += (white - self.noise) * 0.08;
+        sample += self.noise * 0.10;
+
+        (sample * 1.8).tanh() * self.amplitude
     }
-    samples
 }
 
-fn engine_loop(bucket: usize) -> Vec<u8> {
-    encode_wav(&engine_samples(bucket))
+#[derive(Clone, Copy)]
+enum VoiceKind {
+    Countdown,
+    Go,
+    Crash,
+    Extend,
+    GameOver,
+    Pass,
 }
 
-fn tone(frequency: f32, duration: f32, volume: f32) -> Vec<u8> {
-    let count = (SAMPLE_RATE as f32 * duration) as usize;
-    let mut samples = Vec::with_capacity(count);
-    for i in 0..count {
-        let t = i as f32 / SAMPLE_RATE as f32;
-        let phase = t * frequency * std::f32::consts::TAU;
-        let fade = (i as f32 / count as f32 * 20.0).min(1.0)
-            * ((count - i) as f32 / count as f32 * 12.0).min(1.0);
-        // Slightly square-edged beep.
-        let wave = phase.sin() + (phase * 2.0).sin() * 0.18;
-        samples.push((wave * 0.5).tanh() * volume * fade);
-    }
-    encode_wav(&samples)
+struct Voice {
+    kind: VoiceKind,
+    age: f32,
+    duration: f32,
+    sample_rate: f32,
+    noise: f32,
+    rng: u32,
 }
 
-fn crash_noise() -> Vec<u8> {
-    let duration = 0.85;
-    let count = (SAMPLE_RATE as f32 * duration) as usize;
-    let mut samples = Vec::with_capacity(count);
-    let mut lcg = 0xDEAD_BEEFu32;
-    let mut filtered = 0.0f32;
-    for i in 0..count {
-        let t = i as f32 / SAMPLE_RATE as f32;
-        let fade = (1.0 - t / duration).powf(1.4);
-        lcg = lcg.wrapping_mul(1_103_515_245).wrapping_add(12_345);
-        let white = ((lcg >> 9) as f32 / 4_194_304.0) - 1.0;
-        filtered += (white - filtered) * 0.31;
-        let thud = (t * 52.0 * std::f32::consts::TAU).sin() * (1.0 - t / 0.4).max(0.0);
-        samples.push(((filtered * 0.8 + thud * 0.55) * fade * 0.82).clamp(-1.0, 1.0));
-    }
-    encode_wav(&samples)
-}
-
-fn extend_chime() -> Vec<u8> {
-    let notes = [
-        (660.0, 0.0, 0.18),
-        (880.0, 0.16, 0.18),
-        (1_320.0, 0.32, 0.34),
-    ];
-    let count = (SAMPLE_RATE as f32 * 0.78) as usize;
-    let mut samples = vec![0.0f32; count];
-    for (frequency, offset, duration) in notes {
-        let start = (offset * SAMPLE_RATE as f32) as usize;
-        let note_count = (duration * SAMPLE_RATE as f32) as usize;
-        for i in 0..note_count {
-            if start + i >= count {
-                break;
-            }
-            let t = i as f32 / SAMPLE_RATE as f32;
-            let fade = (1.0 - i as f32 / note_count as f32).powf(1.5);
-            let phase = t * frequency * std::f32::consts::TAU;
-            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.2) * fade * 0.72;
+impl Voice {
+    fn new(cue: Cue, sample_rate: f32) -> Self {
+        let (kind, duration, rng) = match cue {
+            Cue::Countdown => (VoiceKind::Countdown, 0.11, 0x1000_0001),
+            Cue::Go => (VoiceKind::Go, 0.26, 0x1000_0002),
+            Cue::Crash => (VoiceKind::Crash, 0.85, 0xDEAD_BEEF),
+            Cue::Extend => (VoiceKind::Extend, 0.78, 0x1000_0003),
+            Cue::GameOver => (VoiceKind::GameOver, 1.5, 0x1000_0004),
+            Cue::Pass => (VoiceKind::Pass, 0.035, 0x1000_0005),
+        };
+        Self {
+            kind,
+            age: 0.0,
+            duration,
+            sample_rate,
+            noise: 0.0,
+            rng,
         }
     }
-    encode_wav(&samples)
-}
 
-fn game_over_jingle() -> Vec<u8> {
-    let notes = [
-        (392.0, 0.0, 0.22),
-        (330.0, 0.22, 0.22),
-        (262.0, 0.44, 0.25),
-        (196.0, 0.74, 0.55),
-    ];
-    let count = (SAMPLE_RATE as f32 * 1.5) as usize;
-    let mut samples = vec![0.0f32; count];
-    for (frequency, offset, duration) in notes {
-        let start = (offset * SAMPLE_RATE as f32) as usize;
-        let note_count = (duration * SAMPLE_RATE as f32) as usize;
-        for i in 0..note_count {
-            if start + i >= count {
-                break;
+    fn finished(&self) -> bool {
+        self.age >= self.duration
+    }
+
+    fn next_sample(&mut self) -> f32 {
+        let age = self.age;
+        let t = age / self.duration;
+        let value = match self.kind {
+            VoiceKind::Countdown => tone(age, 660.0, self.duration, 0.86),
+            VoiceKind::Go => tone(age, 990.0, self.duration, 0.86),
+            VoiceKind::Pass => tone(age, 1_320.0, self.duration, 0.46),
+            VoiceKind::Crash => {
+                self.rng = self.rng.wrapping_mul(1_103_515_245).wrapping_add(12_345);
+                let white = (self.rng >> 9) as f32 / 4_194_304.0 - 1.0;
+                self.noise += (white - self.noise) * 0.31;
+                let fade = (1.0 - t).powf(1.4);
+                let thud = (age * 52.0 * TAU).sin() * (1.0 - age / 0.4).max(0.0);
+                ((self.noise * 0.8 + thud * 0.55) * fade * 0.82).clamp(-1.0, 1.0)
             }
-            let t = i as f32 / SAMPLE_RATE as f32;
-            let fade = (1.0 - i as f32 / note_count as f32).powf(1.2);
-            let phase = t * frequency * std::f32::consts::TAU;
-            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.22) * fade * 0.72;
-        }
+            VoiceKind::Extend => {
+                let mut sample = 0.0;
+                for (start, frequency, length) in [
+                    (0.0, 660.0, 0.18),
+                    (0.16, 880.0, 0.18),
+                    (0.32, 1_320.0, 0.34),
+                ] {
+                    if age >= start && age < start + length {
+                        sample += tone(age - start, frequency, length, 0.8);
+                    }
+                }
+                sample.clamp(-1.0, 1.0)
+            }
+            VoiceKind::GameOver => {
+                let mut sample = 0.0;
+                for (start, frequency, length) in [
+                    (0.0, 392.0, 0.22),
+                    (0.22, 330.0, 0.22),
+                    (0.44, 262.0, 0.25),
+                    (0.74, 196.0, 0.55),
+                ] {
+                    if age >= start && age < start + length {
+                        sample += tone(age - start, frequency, length, 0.8);
+                    }
+                }
+                sample.clamp(-1.0, 1.0)
+            }
+        };
+
+        self.age += 1.0 / self.sample_rate;
+        value
     }
-    encode_wav(&samples)
 }
 
-fn encode_wav(samples: &[f32]) -> Vec<u8> {
-    let data_len = (samples.len() * 2) as u32;
-    let mut bytes = Vec::with_capacity(44 + data_len as usize);
-    bytes.extend_from_slice(b"RIFF");
-    bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
-    bytes.extend_from_slice(b"WAVEfmt ");
-    bytes.extend_from_slice(&16u32.to_le_bytes());
-    bytes.extend_from_slice(&1u16.to_le_bytes()); // PCM
-    bytes.extend_from_slice(&1u16.to_le_bytes()); // mono
-    bytes.extend_from_slice(&SAMPLE_RATE.to_le_bytes());
-    bytes.extend_from_slice(&(SAMPLE_RATE * 2).to_le_bytes());
-    bytes.extend_from_slice(&2u16.to_le_bytes());
-    bytes.extend_from_slice(&16u16.to_le_bytes());
-    bytes.extend_from_slice(b"data");
-    bytes.extend_from_slice(&data_len.to_le_bytes());
-    for sample in samples {
-        let value = (sample.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
-        bytes.extend_from_slice(&value.to_le_bytes());
+fn tone(age: f32, frequency: f32, duration: f32, gain: f32) -> f32 {
+    if age < 0.0 || age >= duration {
+        return 0.0;
     }
-    bytes
+    let t = age / duration;
+    let attack = (age * 90.0).clamp(0.0, 1.0);
+    let release = (1.0 - t).powf(1.3);
+    let phase = age * frequency * TAU;
+    let wave = phase.sin() + (phase * 2.0).sin() * 0.18;
+    (wave * 0.5).tanh() * gain * attack * release
 }
 
 #[cfg(test)]
@@ -374,44 +438,69 @@ mod tests {
     use super::*;
 
     #[test]
-    fn wav_header_is_well_formed() {
-        let bytes = tone(440.0, 0.1, 0.5);
-        assert_eq!(&bytes[0..4], b"RIFF");
-        assert_eq!(&bytes[8..12], b"WAVE");
-        assert_eq!(&bytes[36..40], b"data");
-        let length = u32::from_le_bytes(bytes[40..44].try_into().unwrap()) as usize;
-        assert_eq!(length + 44, bytes.len());
-    }
+    fn engine_output_is_finite_and_bounded() {
+        let shared = Shared::new();
+        shared.running.store(true, Ordering::Relaxed);
+        shared.speed.store(240.0f32.to_bits(), Ordering::Relaxed);
+        shared.throttle.store(1.0f32.to_bits(), Ordering::Relaxed);
+        let mut engine = Engine::new(48_000.0);
 
-    #[test]
-    fn engine_loop_has_expected_duration() {
-        let bytes = engine_loop(2);
-        assert_eq!(bytes.len(), 44 + SAMPLE_RATE as usize * 2);
-    }
-
-    #[test]
-    fn engine_loop_seam_is_continuous() {
-        for bucket in [0, 3, 5] {
-            let samples = engine_samples(bucket);
-            let seam_step = (samples[0] - samples[samples.len() - 1]).abs();
-            let normal_step = samples
-                .windows(2)
-                .map(|pair| (pair[1] - pair[0]).abs())
-                .fold(0.0f32, f32::max);
-            // A seam click is a jump materially larger than the waveform's
-            // normal sample-to-sample motion. Filtered noise is intentionally
-            // jumpy, so allow a small margin rather than demanding equality.
-            assert!(
-                seam_step <= normal_step * 1.25,
-                "bucket {bucket} seam step {seam_step} exceeds normal step {normal_step}"
-            );
+        let mut previous = 0.0;
+        let mut max_step = 0.0f32;
+        for _ in 0..48_000 {
+            let sample = engine.next_sample(&shared);
+            assert!(sample.is_finite());
+            assert!(sample.abs() <= 0.6);
+            max_step = max_step.max((sample - previous).abs());
+            previous = sample;
         }
+        assert!(max_step < 0.2, "engine jumped by {max_step}");
     }
 
     #[test]
-    fn engine_mix_levels_stay_audible_and_unclipped() {
-        assert!(engine_volume(0.0, 0.0) >= 0.30);
-        assert!(engine_volume(1.0, 1.0) <= 0.85);
-        assert!(engine_volume(1.0, 1.0) > engine_volume(0.0, 0.0));
+    fn engine_pitch_glides_without_restarts() {
+        let shared = Shared::new();
+        shared.running.store(true, Ordering::Relaxed);
+        shared.speed.store(0.0f32.to_bits(), Ordering::Relaxed);
+        let mut engine = Engine::new(48_000.0);
+        for _ in 0..2_000 {
+            engine.next_sample(&shared);
+        }
+        let low = engine.frequency;
+
+        shared.speed.store(240.0f32.to_bits(), Ordering::Relaxed);
+        let mut previous = engine.frequency;
+        let mut max_step = 0.0f32;
+        for _ in 0..10_000 {
+            engine.next_sample(&shared);
+            max_step = max_step.max((engine.frequency - previous).abs());
+            previous = engine.frequency;
+        }
+        assert!(engine.frequency > low + 50.0);
+        assert!(max_step < 1.0, "pitch stepped by {max_step} Hz");
+    }
+
+    #[test]
+    fn every_sound_ends_inside_its_buffer() {
+        for cue in [
+            Cue::Countdown,
+            Cue::Go,
+            Cue::Crash,
+            Cue::Extend,
+            Cue::GameOver,
+            Cue::Pass,
+        ] {
+            let mut voice = Voice::new(cue, 48_000.0);
+            let mut last = 0.0;
+            let mut rendered = 0;
+            while !voice.finished() && rendered < 100_000 {
+                last = voice.next_sample();
+                rendered += 1;
+                assert!(last.is_finite());
+                assert!(last.abs() <= 1.0);
+            }
+            assert!(voice.finished());
+            assert!(last.abs() < 0.2, "voice ended abruptly at {last}");
+        }
     }
 }

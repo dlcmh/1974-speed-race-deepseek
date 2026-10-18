@@ -62,7 +62,7 @@ speed/time readout so you do not have to look away for long.
 | `src/game.rs` | deterministic simulation: phases, traffic, scoring, crashes |
 | `src/road.rs` | pseudo-3D projection and the endless curved centre line |
 | `src/gfx.rs` | bitmap font, seven-segment LEDs, cars, CRT, cabinet |
-| `src/audio.rs` | procedural engine loops and arcade one-shots |
+| `src/audio.rs` | real-time engine synth and arcade one-shots |
 | `src/input.rs` | keyboard plus analog wheel/gamepad support |
 | `src/rng.rs` | tiny xorshift RNG |
 

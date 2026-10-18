@@ -13,7 +13,7 @@ or audio assets.
 ```sh
 cargo run --release          # play
 cargo fmt --check            # formatting gate
-cargo test                   # 15 unit tests
+cargo test                   # 14 unit tests
 cargo clippy --all-targets -- -D warnings
 cargo build --release
 ```
@@ -26,10 +26,10 @@ The default branch is `main`, and `origin/main` is its upstream.
 
 - Working title/attract screen, countdown, race, crash/restart and game-over loop.
 - Procedurally drawn cabinet, CRT, cars, bitmap font and seven-segment LEDs.
-- Procedural engine loops and arcade sound effects.
+- Continuous real-time engine synthesis and procedural arcade sound effects.
 - Keyboard plus analog gamepad/racing-wheel input.
 - Persistent high score.
-- 15 unit tests; `cargo fmt`, `cargo clippy -D warnings` and release build pass.
+- 14 unit tests; `cargo fmt`, `cargo clippy -D warnings` and release build pass.
 - Tested interactively on macOS with Rust 1.97.1. The code targets edition 2024
   and declares `rust-version = "1.85"`.
 
@@ -63,7 +63,7 @@ The default branch is `main`, and `origin/main` is its upstream.
 | `src/game.rs` | pure simulation: phases, traffic, scoring, crashes, extensions |
 | `src/road.rs` | pseudo-3D projection and centre-line math |
 | `src/gfx.rs` | all drawing: bitmap font, LEDs, road, cars, CRT, cabinet |
-| `src/audio.rs` | in-memory WAV synthesis and playback |
+| `src/audio.rs` | cpal real-time synth: continuous engine + one-shot effects |
 | `src/input.rs` | keyboard and gamepad polling |
 | `src/rng.rs` | deterministic xorshift RNG |
 | `docs/ARCHITECTURE.md` | system design, constants, rendering contract |
@@ -164,11 +164,12 @@ macOS, F12 may require `Fn+F12` depending on the keyboard setting.
 - Prefer small, named functions and module-level comments that explain *why*.
 - Avoid `unwrap`/`expect` outside tests. Existing test-only unwraps are fine.
 - No new dependency without a concrete need. Current direct dependencies are
-  `macroquad 0.4.16` (audio feature) and `gilrs 0.11`.
+  `macroquad 0.4.16` (no audio feature; audio is cpal), `cpal 0.18.2` and
+  `gilrs 0.11`.
 - Keep the simulation deterministic when seeded. Randomness must go through
   `rng::Rng`.
-- Tests should cover rules, projection math and generated audio headers, not
-  pixel output. Add a regression test for every gameplay/logic bug that can be
+- Tests should cover rules, projection math and the audio synth, not pixel
+  output. Add a regression test for every gameplay/logic bug that can be
   expressed without a window.
 - Keep draw code tolerant of the low internal resolution. New HUD text should
   use `draw_pixel_text`, and new solid UI should use the existing palette.
@@ -209,9 +210,9 @@ the docs in the same commit.
 - No two-player mode, force feedback, configurable controls or remappable
   keys.
 - The game is a native desktop build; no WASM/web target is set up.
-- Audio loops are deliberately synthetic. Engine buckets crossfade, and the
-  one-second loop is generated with circularly filtered noise so it has no
-  seam; timbre remains period-styled.
+- Audio is synthesised in real time by a cpal callback. There are no engine
+  loops or WAV assets; changing the engine to a sampled/streaming design would
+  need a deliberate performance review.
 - There is no CI workflow yet. A macOS job running the four verification gates
   would be useful.
 - High-score persistence is intentionally a tiny dotfile read/write with no

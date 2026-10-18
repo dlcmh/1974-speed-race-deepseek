@@ -10,5 +10,6 @@ opt-level = 3
 lto = "thin"
 
 [dependencies]
+cpal = "0.18.2"
 gilrs = "0.11"
-macroquad = { version = "0.4.16", features = ["audio"] }
+macroquad = "0.4.16"

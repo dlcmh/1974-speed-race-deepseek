@@ -106,3 +106,18 @@ Persist only the best score to `~/.speed_race_1974_highscore` with a tiny
 read/write. It is not a general settings system and has no file locking. If
 settings/rebindable keys are added, revisit and likely move to a platform
 configuration directory.
+
+## ADR-0012 — Real-time cpal engine instead of looping WAVs
+
+**Accepted; supersedes the looped-engine approach.**
+
+The engine started as a bank of one-second mono WAV loops managed by
+macroquad/quad-snd. Even after making the seam mathematically continuous,
+periodic dips and crackle remained on macOS. Moving the engine to a continuous
+cpal oscillator removes the loop entirely: pitch is a smoothed value, not a
+sample switch, and there is no decoded file boundary for the mixer to wrap.
+
+All audio now runs through a single cpal stream on its own thread. Macroquad's
+audio feature is disabled. One-shots are synthesised in the same callback, so
+the app does not run competing audio mixers. The trade-off is a direct cpal
+dependency and a small amount of real-time DSP code.

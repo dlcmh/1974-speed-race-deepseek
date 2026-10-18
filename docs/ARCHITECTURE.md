@@ -89,17 +89,24 @@ The cabinet canvas is 960 × 720. The CRT is drawn at
 
 ### `src/audio.rs`
 
-Synthesizes mono 16-bit WAV data in memory at 22,050 Hz. There are six looping
-engine buckets (fundamental frequency rises with speed), plus countdown, go,
-crash, extension, game-over and overtake sounds. Audio failures are tolerated:
-missing sounds simply do not play.
+Uses `cpal` for a real-time output stream on a dedicated thread. The engine is a
+continuous software oscillator, not a WAV loop:
 
-The engine bus uses equal-power crossfades between adjacent buckets when speed
-crosses a threshold, so pitch changes do not restart the sound abruptly. The
-one-second noise texture is produced by running a one-pole filter circularly
-over white noise, so it is genuinely periodic; this avoids the fade-out dip
-and seam click that a tail crossfade introduced. Both properties are covered
-by audio tests.
+- pitch follows speed with a smoothed glide;
+- amplitude follows throttle and has attack/release envelopes for pause and
+  mute;
+- a filtered real-time noise component gives it texture;
+- no loop point or bucket restart exists to click or gap.
+
+One-shot effects are synthesised sample-by-sample in the same callback
+(countdown, go, crash, extension, game-over, overtake). A fixed array of eight
+voices is mixed with the engine and clamped before output. The macroquad audio
+feature is intentionally disabled to avoid running a second mixer; cpal owns
+all audio.
+
+Audio failures are tolerated: if the output device or stream cannot be opened,
+the game still runs silently. Synthesis routines are unit-tested without
+opening an audio device.
 
 ### `src/input.rs`
 
@@ -175,7 +182,7 @@ Unit tests live next to their modules:
   bounds.
 - `road`: monotonic projection, smooth/bounded curves, zero relative offset at
   the camera.
-- `audio`: WAV header and engine-loop duration.
+- `audio`: engine boundedness, smooth pitch glides, one-shot voice endings.
 - `rng`: range and determinism.
 
 Rendering is not pixel-tested. Use the live game and screenshots for visual

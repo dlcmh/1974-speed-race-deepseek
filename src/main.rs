@@ -35,7 +35,7 @@ async fn main() {
     target.texture.set_filter(FilterMode::Nearest);
 
     let mut game = Game::new(load_high_score());
-    let mut audio = ArcadeAudio::load().await;
+    let mut audio = ArcadeAudio::load();
     let mut input = Input::new();
     let mut fullscreen = false;
 
@@ -90,7 +90,7 @@ async fn main() {
         }
 
         let engine_active = !game.paused && matches!(game.phase, Phase::Countdown | Phase::Racing);
-        audio.sync_engine(engine_active, game.speed, game.controls.throttle, dt);
+        audio.sync_engine(engine_active, game.speed, game.controls.throttle);
 
         // 1. Paint the low-resolution road into its phosphor tube.
         let mut game_camera =
