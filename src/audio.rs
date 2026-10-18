@@ -9,6 +9,9 @@ use macroquad::audio::{
 
 const SAMPLE_RATE: u32 = 22_050;
 const ENGINE_BUCKETS: usize = 6;
+const ENGINE_FADE_SECONDS: f32 = 0.35;
+/// Length of the crossfade that hides the one-second loop seam.
+const ENGINE_SEAM_FADE: usize = 900;
 
 pub struct ArcadeAudio {
     engines: Vec<Sound>,
@@ -18,7 +21,11 @@ pub struct ArcadeAudio {
     extend: Option<Sound>,
     game_over: Option<Sound>,
     pass: Option<Sound>,
+    /// Bucket that is currently fading in (or fully active).
     engine_bucket: Option<usize>,
+    /// Outgoing bucket during a pitch crossfade.
+    engine_previous: Option<usize>,
+    engine_fade: f32,
     pub muted: bool,
 }
 
@@ -42,6 +49,8 @@ impl ArcadeAudio {
                 .await
                 .ok(),
             engine_bucket: None,
+            engine_previous: None,
+            engine_fade: 1.0,
             muted: false,
         }
     }
@@ -56,7 +65,7 @@ impl ArcadeAudio {
     /// Keep one looping engine sample alive and shift to a higher-pitched
     /// sample as the revs rise. It is crude, but it reads as a 1974 arcade
     /// engine rather than a modern sample library.
-    pub fn sync_engine(&mut self, active: bool, speed: f32, throttle: f32) {
+    pub fn sync_engine(&mut self, active: bool, speed: f32, throttle: f32, dt: f32) {
         if self.muted || !active || self.engines.is_empty() {
             self.stop_engine();
             return;
@@ -67,25 +76,79 @@ impl ArcadeAudio {
             .min(self.engines.len() - 1);
         let volume = engine_volume(throttle, ratio);
 
-        if self.engine_bucket != Some(bucket) {
-            self.stop_engine();
-            play_sound(
-                &self.engines[bucket],
-                PlaySoundParams {
-                    looped: true,
-                    volume,
-                },
-            );
-            self.engine_bucket = Some(bucket);
+        match self.engine_bucket {
+            None => {
+                // Starting from silence: no crossfade is needed.
+                play_sound(
+                    &self.engines[bucket],
+                    PlaySoundParams {
+                        looped: true,
+                        volume,
+                    },
+                );
+                self.engine_bucket = Some(bucket);
+                self.engine_previous = None;
+                self.engine_fade = 1.0;
+            }
+            Some(current) if current != bucket => {
+                if self.engine_previous == Some(bucket) {
+                    // The player crossed back over the same threshold during
+                    // a fade. Reversing the two voices avoids a restart click.
+                    self.engine_bucket = Some(bucket);
+                    self.engine_previous = Some(current);
+                    self.engine_fade = 1.0 - self.engine_fade;
+                } else {
+                    // Two voices are enough for normal driving. If another
+                    // bucket change lands mid-fade, drop the oldest voice and
+                    // fade from the one that is currently audible.
+                    if let Some(previous) = self.engine_previous.take() {
+                        if previous != current {
+                            stop_sound(&self.engines[previous]);
+                        }
+                    }
+                    play_sound(
+                        &self.engines[bucket],
+                        PlaySoundParams {
+                            looped: true,
+                            volume: 0.0,
+                        },
+                    );
+                    self.engine_previous = Some(current);
+                    self.engine_bucket = Some(bucket);
+                    self.engine_fade = 0.0;
+                }
+            }
+            _ => {}
         }
+
+        self.engine_fade = (self.engine_fade + dt / ENGINE_FADE_SECONDS).min(1.0);
+        let t = self.engine_fade;
+        // Equal-power fades avoid a volume dip in the middle of the handover.
+        let incoming_gain = (t * std::f32::consts::FRAC_PI_2).sin();
+        let outgoing_gain = (t * std::f32::consts::FRAC_PI_2).cos();
+
         if let Some(current) = self.engine_bucket {
-            set_sound_volume(&self.engines[current], volume);
+            set_sound_volume(&self.engines[current], volume * incoming_gain);
+        }
+        if let Some(previous) = self.engine_previous {
+            set_sound_volume(&self.engines[previous], volume * outgoing_gain);
+            if self.engine_fade >= 1.0 {
+                stop_sound(&self.engines[previous]);
+                self.engine_previous = None;
+            }
         }
     }
 
     pub fn stop_engine(&mut self) {
-        if let Some(bucket) = self.engine_bucket.take() {
+        let current = self.engine_bucket.take();
+        let previous = self.engine_previous.take();
+        if let Some(bucket) = current {
             stop_sound(&self.engines[bucket]);
+        }
+        if let Some(bucket) = previous {
+            if current != Some(bucket) {
+                stop_sound(&self.engines[bucket]);
+            }
         }
     }
 
@@ -144,14 +207,20 @@ fn engine_volume(throttle: f32, speed_ratio: f32) -> f32 {
     0.30 + 0.35 * throttle.clamp(0.0, 1.0) + 0.18 * speed_ratio.clamp(0.0, 1.0)
 }
 
-fn engine_loop(bucket: usize) -> Vec<u8> {
-    // Whole-number frequencies guarantee a click-free one-second loop.
+fn engine_samples(bucket: usize) -> Vec<f32> {
+    // Whole-number frequencies guarantee a click-free harmonic loop. The
+    // noise is crossfaded at the seam below, because filtered white noise is
+    // not naturally periodic.
     let fundamental = 54.0 + bucket as f32 * 13.0;
-    let mut samples = Vec::with_capacity(SAMPLE_RATE as usize);
+    let loop_len = SAMPLE_RATE as usize;
+    let source_len = loop_len + ENGINE_SEAM_FADE;
+    let mut samples = Vec::with_capacity(source_len);
     let mut noise = 0.0f32;
     let mut lcg = 0x1974_0055u32;
 
-    for i in 0..SAMPLE_RATE {
+    // Synthesise a little over one second so the end can be folded back into
+    // the beginning with a short equal-power crossfade.
+    for i in 0..source_len {
         let t = i as f32 / SAMPLE_RATE as f32;
         let phase = t * fundamental * std::f32::consts::TAU;
         let wobble = 1.0 + 0.018 * (t * 3.0 * std::f32::consts::TAU).sin();
@@ -170,11 +239,22 @@ fn engine_loop(bucket: usize) -> Vec<u8> {
         // A little valve-like compression keeps the loop warm instead of
         // fizzy when several harmonics line up. The added upper harmonics
         // give the engine presence on small laptop speakers.
-        sample = (sample * 1.8).tanh() * 0.55;
-        samples.push(sample);
+        samples.push((sample * 1.8).tanh() * 0.55);
     }
 
-    encode_wav(&samples)
+    // Fold the extra tail into the head. At the wrap point this leaves the
+    // last sample flowing straight into the first sample without the click
+    // that raw noise would produce every second.
+    for i in 0..ENGINE_SEAM_FADE {
+        let blend = i as f32 / ENGINE_SEAM_FADE as f32;
+        samples[i] = samples[loop_len + i] * (1.0 - blend) + samples[i] * blend;
+    }
+    samples.truncate(loop_len);
+    samples
+}
+
+fn engine_loop(bucket: usize) -> Vec<u8> {
+    encode_wav(&engine_samples(bucket))
 }
 
 fn tone(frequency: f32, duration: f32, volume: f32) -> Vec<u8> {
@@ -299,6 +379,22 @@ mod tests {
     fn engine_loop_has_expected_duration() {
         let bytes = engine_loop(2);
         assert_eq!(bytes.len(), 44 + SAMPLE_RATE as usize * 2);
+    }
+
+    #[test]
+    fn engine_loop_seam_is_continuous() {
+        for bucket in [0, 3, 5] {
+            let samples = engine_samples(bucket);
+            let seam_step = (samples[0] - samples[samples.len() - 1]).abs();
+            let normal_step = samples
+                .windows(2)
+                .map(|pair| (pair[1] - pair[0]).abs())
+                .fold(0.0f32, f32::max);
+            assert!(
+                seam_step <= normal_step,
+                "bucket {bucket} seam step {seam_step} exceeds normal step {normal_step}"
+            );
+        }
     }
 
     #[test]

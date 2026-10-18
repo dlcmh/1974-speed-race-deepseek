@@ -94,6 +94,12 @@ engine buckets (fundamental frequency rises with speed), plus countdown, go,
 crash, extension, game-over and overtake sounds. Audio failures are tolerated:
 missing sounds simply do not play.
 
+The engine bus uses equal-power crossfades between adjacent buckets when speed
+crosses a threshold, so pitch changes do not restart the sound abruptly. Each
+one-second loop also folds its extra tail into the head with a short crossfade:
+filtered noise is not naturally periodic, and without this the loop would click
+on every wrap. Both properties are covered by audio tests.
+
 ### `src/input.rs`
 
 Combines keyboard state with the first connected gilrs gamepad. The mouse is

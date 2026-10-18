@@ -90,7 +90,7 @@ async fn main() {
         }
 
         let engine_active = !game.paused && matches!(game.phase, Phase::Countdown | Phase::Racing);
-        audio.sync_engine(engine_active, game.speed, game.controls.throttle);
+        audio.sync_engine(engine_active, game.speed, game.controls.throttle, dt);
 
         // 1. Paint the low-resolution road into its phosphor tube.
         let mut game_camera =
