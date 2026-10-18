@@ -1,0 +1,31 @@
+# Rust / Cargo build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Runtime files created by the game
+.speed_race_1974_highscore
+speed-race-screenshot.png
+
+# Editor / IDE noise
+.idea/
+.vscode/
+*.swp
