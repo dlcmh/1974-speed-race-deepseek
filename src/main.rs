@@ -31,8 +31,6 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    show_mouse(false);
-
     let target = render_target(gfx::SCREEN_W as u32, gfx::SCREEN_H as u32);
     target.texture.set_filter(FilterMode::Nearest);
 

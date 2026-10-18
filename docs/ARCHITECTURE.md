@@ -96,7 +96,11 @@ missing sounds simply do not play.
 
 ### `src/input.rs`
 
-Combines keyboard state with the first connected gilrs gamepad:
+Combines keyboard state with the first connected gilrs gamepad. The mouse is
+deliberately left alone: this game never hides or captures the OS cursor, so
+the player can switch windows while it is running.
+
+Input details:
 
 - Left stick / wheel axis steers; d-pad adds digital steering.
 - Right trigger or A/d-pad-up accelerates.

@@ -45,9 +45,13 @@ The default branch is `main`, and `origin/main` is its upstream.
    is outside our control.
 4. **Preserve the feel.** The target is a fast, legible 1974 arcade game, not a
    simulation. Prefer small changes with a clear gameplay reason.
-5. **No unreviewed licensing.** There is currently no project license file.
+5. **Do not capture or hide the mouse.** The game has no mouse controls. Never
+   call `show_mouse(false)` or otherwise grab the OS cursor: hiding it globally
+   prevents the player from clicking other windows or the desktop until the
+   game exits.
+6. **No unreviewed licensing.** There is currently no project license file.
    Do not add, change or assume a license without the owner's approval.
-6. **Never commit runtime output or secrets.** See `.gitignore`. Do not commit
+7. **Never commit runtime output or secrets.** See `.gitignore`. Do not commit
    `.speed_race_1974_highscore`, `speed-race-screenshot.png`, credentials, tokens
    or `.env` files.
 
