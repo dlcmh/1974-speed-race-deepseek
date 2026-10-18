@@ -112,6 +112,7 @@ liberties taken for playability.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design and rendering invariants
 - [docs/DECISIONS.md](docs/DECISIONS.md) — architecture decision records
 - [docs/AUDIO_JOURNEY.md](docs/AUDIO_JOURNEY.md) — the long road to continuous engine audio
+- [docs/PORTABILITY.md](docs/PORTABILITY.md) — options for macOS, Windows, Linux, HarmonyOS and the web
 
 Taito's *Speed Race* (1974), designed by Tomohiro Nishikado, was distributed
 internationally as *Racer* and *Wheels*.
