@@ -1450,9 +1450,9 @@ fn draw_control_deck(muted: bool) {
 
     let line_one = "STEER  A/D OR ARROWS     GAS  W/UP     BRAKE  S/DOWN";
     let line_two = if muted {
-        "P PAUSE   M UNMUTE   F11 FULLSCREEN   Q QUIT"
+        "P PAUSE   M UNMUTE   F FULLSCREEN   Q QUIT"
     } else {
-        "P PAUSE   M MUTE   F11 FULLSCREEN   Q QUIT"
+        "P PAUSE   M MUTE   F FULLSCREEN   Q QUIT"
     };
     draw_pixel_text(
         line_one,

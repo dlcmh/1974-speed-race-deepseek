@@ -19,7 +19,7 @@ cargo run --release
 Requires a recent stable Rust toolchain (edition 2024). Tested on macOS;
 macroquad and gilrs also target Linux and Windows.
 
-The game opens in a resizable 4:3 window. **F11** toggles fullscreen.
+The game opens in a resizable 4:3 window. **F** toggles fullscreen.
 
 ## Controls
 
@@ -31,7 +31,7 @@ The game opens in a resizable 4:3 window. **F11** toggles fullscreen.
 | Brake | **S** / **↓** | Left trigger, **B**, d-pad down |
 | Pause | **P** or **Esc** | **Start** |
 | Mute | **M** | — |
-| Fullscreen | **F11** | — |
+| Fullscreen | **F** | — |
 | Screenshot | **F12** | — |
 | Quit | **Q** | Select / Back |
 

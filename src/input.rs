@@ -56,7 +56,7 @@ impl Input {
         let mut pause = is_key_pressed(KeyCode::P) || is_key_pressed(KeyCode::Escape);
         let mut quit = is_key_pressed(KeyCode::Q);
         let mute = is_key_pressed(KeyCode::M);
-        let fullscreen = is_key_pressed(KeyCode::F11);
+        let fullscreen = is_key_pressed(KeyCode::F);
         let screenshot = is_key_pressed(KeyCode::F12);
 
         if let Some(gilrs) = &mut self.gilrs {
