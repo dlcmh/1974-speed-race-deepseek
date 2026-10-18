@@ -13,7 +13,7 @@ or audio assets.
 ```sh
 cargo run --release          # play
 cargo fmt --check            # formatting gate
-cargo test                   # 13 unit tests
+cargo test                   # 14 unit tests
 cargo clippy --all-targets -- -D warnings
 cargo build --release
 ```
@@ -29,7 +29,7 @@ The default branch is `main`, and `origin/main` is its upstream.
 - Procedural engine loops and arcade sound effects.
 - Keyboard plus analog gamepad/racing-wheel input.
 - Persistent high score.
-- 13 unit tests; `cargo fmt`, `cargo clippy -D warnings` and release build pass.
+- 14 unit tests; `cargo fmt`, `cargo clippy -D warnings` and release build pass.
 - Tested interactively on macOS with Rust 1.97.1. The code targets edition 2024
   and declares `rust-version = "1.85"`.
 

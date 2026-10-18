@@ -33,12 +33,12 @@ impl ArcadeAudio {
 
         Self {
             engines,
-            countdown: load_sound_from_bytes(&tone(660.0, 0.11, 0.7)).await.ok(),
-            go: load_sound_from_bytes(&tone(990.0, 0.26, 0.7)).await.ok(),
+            countdown: load_sound_from_bytes(&tone(660.0, 0.11, 0.9)).await.ok(),
+            go: load_sound_from_bytes(&tone(990.0, 0.26, 0.9)).await.ok(),
             crash: load_sound_from_bytes(&crash_noise()).await.ok(),
             extend: load_sound_from_bytes(&extend_chime()).await.ok(),
             game_over: load_sound_from_bytes(&game_over_jingle()).await.ok(),
-            pass: load_sound_from_bytes(&tone(1_320.0, 0.035, 0.28))
+            pass: load_sound_from_bytes(&tone(1_320.0, 0.035, 0.45))
                 .await
                 .ok(),
             engine_bucket: None,
@@ -65,7 +65,7 @@ impl ArcadeAudio {
         let ratio = (speed / 240.0).clamp(0.0, 1.0);
         let bucket = ((ratio * (self.engines.len() - 1) as f32).round() as usize)
             .min(self.engines.len() - 1);
-        let volume = 0.045 + 0.10 * throttle + 0.055 * ratio;
+        let volume = engine_volume(throttle, ratio);
 
         if self.engine_bucket != Some(bucket) {
             self.stop_engine();
@@ -102,15 +102,15 @@ impl ArcadeAudio {
     }
 
     pub fn extend(&self) {
-        self.play(&self.extend, 0.85);
+        self.play(&self.extend, 1.0);
     }
 
     pub fn game_over(&self) {
-        self.play(&self.game_over, 0.9);
+        self.play(&self.game_over, 1.0);
     }
 
     pub fn pass(&self) {
-        self.play(&self.pass, 0.6);
+        self.play(&self.pass, 0.8);
     }
 
     fn play(&self, sound: &Option<Sound>, volume: f32) {
@@ -135,9 +135,18 @@ impl Drop for ArcadeAudio {
     }
 }
 
+/// Level for the looping engine bus.
+///
+/// The original mix was extremely quiet on laptop speakers. Keep the idle
+/// level clearly present and let throttle raise it without getting close to
+/// the mixer's clipping ceiling.
+fn engine_volume(throttle: f32, speed_ratio: f32) -> f32 {
+    0.30 + 0.35 * throttle.clamp(0.0, 1.0) + 0.18 * speed_ratio.clamp(0.0, 1.0)
+}
+
 fn engine_loop(bucket: usize) -> Vec<u8> {
     // Whole-number frequencies guarantee a click-free one-second loop.
-    let fundamental = 44.0 + bucket as f32 * 12.0;
+    let fundamental = 54.0 + bucket as f32 * 13.0;
     let mut samples = Vec::with_capacity(SAMPLE_RATE as usize);
     let mut noise = 0.0f32;
     let mut lcg = 0x1974_0055u32;
@@ -154,11 +163,14 @@ fn engine_loop(bucket: usize) -> Vec<u8> {
         let mut sample = (phase * wobble).sin() * 0.52
             + (phase * 2.0).sin() * 0.23
             + (phase * 3.0).sin() * 0.12
-            + (phase * 5.0).sin() * 0.05;
-        sample += noise * (0.055 + 0.025 * bucket as f32);
+            + (phase * 4.0).sin() * 0.06
+            + (phase * 5.0).sin() * 0.05
+            + (phase * 7.0).sin() * 0.035;
+        sample += noise * (0.06 + 0.03 * bucket as f32);
         // A little valve-like compression keeps the loop warm instead of
-        // fizzy when several harmonics line up.
-        sample = (sample * 1.8).tanh() * 0.43;
+        // fizzy when several harmonics line up. The added upper harmonics
+        // give the engine presence on small laptop speakers.
+        sample = (sample * 1.8).tanh() * 0.55;
         samples.push(sample);
     }
 
@@ -193,7 +205,7 @@ fn crash_noise() -> Vec<u8> {
         let white = ((lcg >> 9) as f32 / 4_194_304.0) - 1.0;
         filtered += (white - filtered) * 0.31;
         let thud = (t * 52.0 * std::f32::consts::TAU).sin() * (1.0 - t / 0.4).max(0.0);
-        samples.push(((filtered * 0.8 + thud * 0.55) * fade * 0.62).clamp(-1.0, 1.0));
+        samples.push(((filtered * 0.8 + thud * 0.55) * fade * 0.82).clamp(-1.0, 1.0));
     }
     encode_wav(&samples)
 }
@@ -216,7 +228,7 @@ fn extend_chime() -> Vec<u8> {
             let t = i as f32 / SAMPLE_RATE as f32;
             let fade = (1.0 - i as f32 / note_count as f32).powf(1.5);
             let phase = t * frequency * std::f32::consts::TAU;
-            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.2) * fade * 0.55;
+            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.2) * fade * 0.72;
         }
     }
     encode_wav(&samples)
@@ -241,7 +253,7 @@ fn game_over_jingle() -> Vec<u8> {
             let t = i as f32 / SAMPLE_RATE as f32;
             let fade = (1.0 - i as f32 / note_count as f32).powf(1.2);
             let phase = t * frequency * std::f32::consts::TAU;
-            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.22) * fade * 0.55;
+            samples[start + i] += (phase.sin() * 0.65 + (phase * 2.0).sin() * 0.22) * fade * 0.72;
         }
     }
     encode_wav(&samples)
@@ -287,5 +299,12 @@ mod tests {
     fn engine_loop_has_expected_duration() {
         let bytes = engine_loop(2);
         assert_eq!(bytes.len(), 44 + SAMPLE_RATE as usize * 2);
+    }
+
+    #[test]
+    fn engine_mix_levels_stay_audible_and_unclipped() {
+        assert!(engine_volume(0.0, 0.0) >= 0.30);
+        assert!(engine_volume(1.0, 1.0) <= 0.85);
+        assert!(engine_volume(1.0, 1.0) > engine_volume(0.0, 0.0));
     }
 }
