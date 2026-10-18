@@ -100,5 +100,12 @@ liberties taken for playability.
 
 ---
 
+## Working on the game
+
+- [AGENTS.md](AGENTS.md) — handoff contract and verification gates for agent sessions
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contributor workflow and house rules
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design and rendering invariants
+- [docs/DECISIONS.md](docs/DECISIONS.md) — architecture decision records
+
 Taito's *Speed Race* (1974), designed by Tomohiro Nishikado, was distributed
 internationally as *Racer* and *Wheels*.

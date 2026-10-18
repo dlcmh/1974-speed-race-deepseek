@@ -25,6 +25,11 @@
 .speed_race_1974_highscore
 speed-race-screenshot.png
 
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
 # Editor / IDE noise
 .idea/
 .vscode/
