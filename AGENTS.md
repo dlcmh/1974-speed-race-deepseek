@@ -68,6 +68,7 @@ The default branch is `main`, and `origin/main` is its upstream.
 | `src/rng.rs` | deterministic xorshift RNG |
 | `docs/ARCHITECTURE.md` | system design, constants, rendering contract |
 | `docs/DECISIONS.md` | accepted design decisions and their trade-offs |
+| `docs/AUDIO_JOURNEY.md` | narrative history of the engine-audio redesign |
 | `README.md` | player-facing documentation and controls |
 
 ## Gameplay model in one screen

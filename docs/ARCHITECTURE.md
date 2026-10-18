@@ -106,7 +106,8 @@ all audio.
 
 Audio failures are tolerated: if the output device or stream cannot be opened,
 the game still runs silently. Synthesis routines are unit-tested without
-opening an audio device.
+opening an audio device. The design history behind this backend is documented
+in [AUDIO_JOURNEY.md](AUDIO_JOURNEY.md).
 
 ### `src/input.rs`
 

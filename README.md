@@ -71,6 +71,11 @@ render target, then scaled with nearest-neighbour sampling inside a cabinet
 that is composed on a 960 × 720 virtual canvas. That keeps the chunky 1974
 look while letting the cabinet chrome stay sharp on modern displays.
 
+Audio is generated entirely in real time by a cpal callback; there are no WAV
+assets or looping engine samples. The story of how it got there — including
+the loop seam that refused to die — is in
+[From Loop Seams to a Live Engine](docs/AUDIO_JOURNEY.md).
+
 The simulation is independent of macroquad and takes a `Controls` snapshot
 plus a delta time. Events (countdown beep, overtake, crash, extension, game
 over) are drained by the app, which owns the sound. That separation is why the
@@ -106,6 +111,7 @@ liberties taken for playability.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contributor workflow and house rules
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system design and rendering invariants
 - [docs/DECISIONS.md](docs/DECISIONS.md) — architecture decision records
+- [docs/AUDIO_JOURNEY.md](docs/AUDIO_JOURNEY.md) — the long road to continuous engine audio
 
 Taito's *Speed Race* (1974), designed by Tomohiro Nishikado, was distributed
 internationally as *Racer* and *Wheels*.
