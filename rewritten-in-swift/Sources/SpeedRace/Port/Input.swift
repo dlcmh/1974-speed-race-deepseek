@@ -29,6 +29,7 @@ public struct InputState: Sendable {
 public final class Input {
     private var held: Set<UInt16> = []
     private var pressedThisFrame: Set<UInt16> = []
+    private let gamepad = GamepadInput()
 
     // macOS virtual key codes (Carbon HIToolbox), stable across layouts.
     enum Key {
@@ -79,11 +80,31 @@ public final class Input {
             ? 1.0 : 0.0
         let brake: Float = (held.contains(Key.down) || held.contains(Key.s)) ? 1.0 : 0.0
 
+        // Merge the first connected pad or wheel, exactly like gilrs in Rust:
+        // analog steering is added to the digital keyboard value, pedals take
+        // the maximum, and button edges trigger start/pause/quit.
+        let pad = gamepad.poll()
+        var mergedSteer = steer
+        var mergedThrottle = throttle
+        var mergedBrake = brake
+        var padStart = false
+        var padPause = false
+        var padQuit = false
+        if pad.connected {
+            mergedSteer = max(-1, min(1, mergedSteer + pad.steer))
+            mergedThrottle = max(mergedThrottle, pad.throttle)
+            mergedBrake = max(mergedBrake, pad.brake)
+            padStart = pad.startPressed
+            padPause = pad.pausePressed
+            padQuit = pad.quitPressed
+        }
+
         var state = InputState()
-        state.controls = Controls(steer: steer, throttle: throttle, brake: brake)
-        state.start = pressed(Key.enter) || pressed(Key.space)
-        state.pause = pressed(Key.p) || pressed(Key.escape)
-        state.quit = pressed(Key.q)
+        state.controls = Controls(
+            steer: mergedSteer, throttle: mergedThrottle, brake: mergedBrake)
+        state.start = pressed(Key.enter) || pressed(Key.space) || padStart
+        state.pause = pressed(Key.p) || pressed(Key.escape) || padPause
+        state.quit = pressed(Key.q) || padQuit
         state.mute = pressed(Key.m)
         state.fullscreen = pressed(Key.f)
         state.screenshot = pressed(Key.f12)

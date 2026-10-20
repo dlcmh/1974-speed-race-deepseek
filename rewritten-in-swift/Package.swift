@@ -51,6 +51,7 @@ let package = Package(
             path: "Sources/SpeedRaceApp",
             linkerSettings: [
                 .linkedFramework("AppKit"),
+                .linkedFramework("GameController"),
                 .linkedFramework("Metal"),
                 .linkedFramework("MetalKit"),
                 .linkedFramework("QuartzCore"),

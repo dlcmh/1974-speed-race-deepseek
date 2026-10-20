@@ -23,17 +23,20 @@ Requires macOS 14+ and a Swift 6 toolchain. No third-party dependencies.
 
 ## Controls
 
-| Action | Keyboard |
-| --- | --- |
-| Start / race again | **Enter** or **Space** |
-| Steer | **A D** or **← →** |
-| Accelerate | **W** / **↑** / **Space** |
-| Brake | **S** / **↓** |
-| Pause | **P** or **Esc** |
-| Mute | **M** |
-| Fullscreen | **F** |
-| Screenshot (F12) | writes `speed-race-swift-screenshot.png` |
-| Quit | **Q** |
+| Action | Keyboard | Wheel / gamepad |
+| --- | --- | --- |
+| Start / race again | **Enter** or **Space** | **A** / South |
+| Steer | **A D** or **← →** | Left stick / wheel axis, d-pad |
+| Accelerate | **W** / **↑** / **Space** | Right trigger, **A**, d-pad up |
+| Brake | **S** / **↓** | Left trigger, **B**, d-pad down |
+| Pause | **P** or **Esc** | Menu / Start |
+| Mute | **M** | — |
+| Fullscreen | **F** | — |
+| Screenshot | **F12** | writes `speed-race-swift-screenshot.png` |
+| Quit | **Q** | — |
+
+The first connected controller is used, with a 0.12 stick dead zone, matching
+`src/input.rs`. Hot-plugging is handled by the GameController framework.
 
 The mouse is never captured or hidden.
 
@@ -71,7 +74,11 @@ that still apply (no force-push, no rewritten history, no build output).
 
 ## Status
 
-Playable: attract screen, countdown, race, crash/restart, game over, scoreboard,
-engine audio and one-shot effects. Gamepad support is not ported yet; the
-high-score file is `~/.speed_race_1974_swift_highscore`, deliberately separate
-from the Rust game's.
+Feature-complete against the canonical game: attract screen, countdown, race,
+crash/restart, game over, scoreboard, engine audio and one-shot effects,
+keyboard plus analog wheel/gamepad input. The high-score file is
+`~/.speed_race_1974_swift_highscore`, deliberately separate from the Rust
+game's.
+
+Not ported: force feedback and configurable wheel mappings (see
+[DIVERGENCES.md](docs/DIVERGENCES.md)).

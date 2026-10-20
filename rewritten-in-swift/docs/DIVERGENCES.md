@@ -74,11 +74,24 @@ replay cannot guess wrong. The canonical Rust game needed three private items
 widened to `pub(crate)` **in the generator's scratch copy only**; `src/` is
 untouched.
 
-## Deliberately not ported yet
+## Deliberately not ported
 
-These are gaps, not decisions; they are the remaining work:
+- **Force feedback.** `gilrs` exposes rumble; the port does not drive haptics.
+- **Configurable wheel mappings.** The pad mapping is fixed, as in Rust.
+- **Two-player mode.** The canonical game has none either.
 
-- Metal rendering (draw list exists, no pipelines yet)
-- Audio (`AVAudioSourceNode` DSP)
-- Keyboard/gamepad input
-- App shell, window, fullscreen, screenshot, high-score file
+## Port-specific additions
+
+### D-0004 — Separate high-score file and screenshot name
+
+The port writes `~/.speed_race_1974_swift_highscore` and
+`speed-race-swift-screenshot.png`, so the two implementations cannot clobber
+each other's state. Everything else about persistence matches Rust (clamp to
+9,999,999, missing file reads as zero, failures ignored).
+
+### D-0005 — Screenshots are produced two ways
+
+F12 renders the frame headlessly and writes the PNG through the in-tree encoder;
+`speed-race-render` does the same without a window. The canonical game reads the
+live framebuffer. Both paths deliberately apply **no row flip** (see
+`DIVERGENCES` N-0006 and the Rust ADR-0007 rationale).
