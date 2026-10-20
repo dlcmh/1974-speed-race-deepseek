@@ -58,12 +58,15 @@ it keeps the Rust-to-Swift correspondence reviewable as a diff.
 
 ---
 
-## P-0004 — Shaders are compiled at launch, from a bundled `.metal` source
+## P-0004 — Shaders are compiled at launch, from a Swift string literal
 
-**Accepted.**
+**Accepted; superseded in part by P-0012.** Originally the shader was a bundled
+`.metal` resource. It is now embedded in `MetalShaderSource.swift`; see
+[METAL-VS-PACMAN.md](METAL-VS-PACMAN.md) for why the resource path was
+abandoned. The rationale below still applies to *runtime* compilation.
 
-`Sources/SpeedRace/Render/Shaders.metal` is shipped as a resource and compiled
-with `MTLDevice.makeLibrary(source:options:)` at startup.
+The shader source lives in `Sources/SpeedRace/Render/MetalShaderSource.swift`
+and is compiled with `MTLDevice.makeLibrary(source:options:)` at startup.
 
 **Why:** only Command Line Tools are installed on the development machine
 (`xcrun metal` is absent), so there is no offline `.metallib` step. Metal

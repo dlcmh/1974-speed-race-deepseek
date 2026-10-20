@@ -34,15 +34,7 @@ let package = Package(
             // All game code lives in a library so both executables can link
             // it: the windowed app and the headless parity/test runner.
             name: "SpeedRace",
-            path: "Sources/SpeedRace",
-            resources: [
-                // Shaders are compiled at launch (see docs/DECISIONS.md,
-                // "P-0004"). Shipping the source as a resource keeps the
-                // package buildable with Command Line Tools only. `.copy`
-                // keeps the file verbatim: `.process` would invoke the Metal
-                // compiler, which Command Line Tools does not ship.
-                .copy("Render/Shaders.metal")
-            ]
+            path: "Sources/SpeedRace"
         ),
         .executableTarget(
             // The playable game: AppKit window + MTKView + keyboard.
