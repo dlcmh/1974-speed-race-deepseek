@@ -85,8 +85,10 @@ public enum CrtScene {
                 continue
             }
 
-            let center0 = screenWidth * 0.5 + Road.screenOffset(distance: distance, z: z0) * p0.scale
-            let center1 = screenWidth * 0.5 + Road.screenOffset(distance: distance, z: z1) * p1.scale
+            let center0 =
+                screenWidth * 0.5 + Road.screenOffset(distance: distance, z: z0) * p0.scale
+            let center1 =
+                screenWidth * 0.5 + Road.screenOffset(distance: distance, z: z1) * p1.scale
             let half0 = Road.roadHalfWidth * p0.scale
             let half1 = Road.roadHalfWidth * p1.scale
 
@@ -151,7 +153,8 @@ public enum CrtScene {
             }
             let projection = Road.project(z)
             let scale = projection.scale
-            let center = screenWidth * 0.5 + Road.screenOffset(distance: game.distance, z: z) * scale
+            let center =
+                screenWidth * 0.5 + Road.screenOffset(distance: game.distance, z: z) * scale
             let half = Road.roadHalfWidth * scale
             let postH = 2.0 + 13.0 * scale
             let postW = max(1.5 * scale, 0.6)

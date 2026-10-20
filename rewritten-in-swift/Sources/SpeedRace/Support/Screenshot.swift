@@ -17,7 +17,8 @@ public enum Screenshot {
     /// Writes straight-alpha RGBA pixels next to the current directory.
     @discardableResult
     public static func save(
-        width: Int, height: Int, pixels: [UInt8], directory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        width: Int, height: Int, pixels: [UInt8],
+        directory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     ) -> URL? {
         let data = PNGEncoder.encodeRGBA(width: width, height: height, pixels: pixels)
         let url = directory.appendingPathComponent(fileName)

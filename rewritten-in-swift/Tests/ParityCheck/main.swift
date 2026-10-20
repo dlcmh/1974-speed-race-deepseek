@@ -27,7 +27,9 @@ func expect(_ condition: Bool, _ message: @autoclosure () -> String) throws {
     }
 }
 
-func expectEqual<T: Equatable>(_ actual: T, _ expected: T, _ context: @autoclosure () -> String) throws {
+func expectEqual<T: Equatable>(
+    _ actual: T, _ expected: T, _ context: @autoclosure () -> String
+) throws {
     if actual != expected {
         throw Failure("\(context()): expected \(expected), got \(actual)")
     }
@@ -49,7 +51,9 @@ enum ParityCheckMain {
         // frame-0 mismatch investigation.
         let cases: [TestCase] =
             rngTests + roadTests + gameTests + rosterTests + renderTests + goldenTraceTests
-        let filter = CommandLine.arguments.count > 2 && CommandLine.arguments[1] == "--only" ? CommandLine.arguments[2] : nil
+        let filter =
+            CommandLine.arguments.count > 2 && CommandLine.arguments[1] == "--only"
+            ? CommandLine.arguments[2] : nil
         var failures: [(String, String)] = []
         for testCase in cases where filter == nil || testCase.name.contains(filter!) {
             do {

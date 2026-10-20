@@ -140,7 +140,9 @@ enum ParityFixtures {
         for candidate in candidates {
             var isDirectory: ObjCBool = false
             let path = candidate.standardizedFileURL.path
-            if fileManager.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue {
+            if fileManager.fileExists(atPath: path, isDirectory: &isDirectory),
+                isDirectory.boolValue
+            {
                 return URL(fileURLWithPath: path)
             }
         }
@@ -150,7 +152,8 @@ enum ParityFixtures {
     static func all() throws -> [Fixture] {
         guard let directory = directory() else {
             throw Failure(
-                "Fixtures/parity not found; run tools/parity-gen/generate.sh or set SR_PARITY_FIXTURES")
+                "Fixtures/parity not found; run tools/parity-gen/generate.sh or set SR_PARITY_FIXTURES"
+            )
         }
         let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
             .filter { $0.hasSuffix(".jsonl") }
@@ -237,10 +240,15 @@ func frameMismatches(
             return
         }
         if value.bitPattern != bits {
-            out.append(Mismatch(field: field, swift: "\(value) [\(value.bitPattern)]", rust: "\(Float(bitPattern: bits)) [\(bits)]"))
+            out.append(
+                Mismatch(
+                    field: field, swift: "\(value) [\(value.bitPattern)]",
+                    rust: "\(Float(bitPattern: bits)) [\(bits)]"))
         }
     }
-    func int<T: Equatable & CustomStringConvertible>(_ field: String, _ value: T, _ expectedValue: T) {
+    func int<T: Equatable & CustomStringConvertible>(
+        _ field: String, _ value: T, _ expectedValue: T
+    ) {
         if value != expectedValue {
             out.append(Mismatch(field: field, swift: "\(value)", rust: "\(expectedValue)"))
         }
@@ -289,7 +297,8 @@ func frameMismatches(
     int("traffic.count", game.traffic.count, expected.traffic.count)
     for (index, car) in game.traffic.enumerated() where index < expected.traffic.count {
         let row: [FixtureCell] = [
-            .number(car.z.bitPattern), .number(car.lateral.bitPattern), .number(car.speed.bitPattern),
+            .number(car.z.bitPattern), .number(car.lateral.bitPattern),
+            .number(car.speed.bitPattern),
             .number(UInt32(car.kind)), .number(UInt32(car.variant)), .flag(car.scored),
             .number(car.wobblePhase.bitPattern),
         ]
@@ -300,7 +309,10 @@ func frameMismatches(
         let discreteFields = Array(row[3...5])
         let floatFields = [row[0], row[1], row[2], row[6]]
         let expectedDiscrete = Array(expected.traffic[index][3...5])
-        let expectedFloats = [expected.traffic[index][0], expected.traffic[index][1], expected.traffic[index][2], expected.traffic[index][6]]
+        let expectedFloats = [
+            expected.traffic[index][0], expected.traffic[index][1], expected.traffic[index][2],
+            expected.traffic[index][6],
+        ]
         var rowMatches = discreteFields == expectedDiscrete
         if rowMatches {
             for (ours, theirs) in zip(floatFields, expectedFloats) {
@@ -321,7 +333,8 @@ func frameMismatches(
             out.append(
                 Mismatch(
                     field: "traffic[\(index)]",
-                    swift: "\(car.z),\(car.lateral),\(car.speed),\(car.kind),\(car.variant),\(car.scored),\(car.wobblePhase)",
+                    swift:
+                        "\(car.z),\(car.lateral),\(car.speed),\(car.kind),\(car.variant),\(car.scored),\(car.wobblePhase)",
                     rust: expected.traffic[index].map(\.description).joined(separator: ",")))
         }
     }
@@ -341,9 +354,11 @@ let goldenTraceTests: [TestCase] = [
             for i in 0..<check.raw.count {
                 try expectEqual(raw.nextU64(), check.raw[i], "\(fixture.name) raw[\(i)]")
                 try expectEqual(unit.unit().bitPattern, check.unit[i], "\(fixture.name) unit[\(i)]")
-                try expectEqual(below.below(1 + i % 7), check.below[i], "\(fixture.name) below[\(i)]")
                 try expectEqual(
-                    range.range(-3.0, 7.0).bitPattern, check.range[i], "\(fixture.name) range[\(i)]")
+                    below.below(1 + i % 7), check.below[i], "\(fixture.name) below[\(i)]")
+                try expectEqual(
+                    range.range(-3.0, 7.0).bitPattern, check.range[i], "\(fixture.name) range[\(i)]"
+                )
             }
         }
     },
@@ -398,17 +413,17 @@ let goldenTraceTests: [TestCase] = [
                     let first = mismatches[0]
                     throw Failure(
                         "\(header.scenario) @ rust \(header.rustCommit) frame \(frame.t): "
-                            + (mismatches.count > 1 ? "\(mismatches.count) mismatches, first: " : "")
+                            + (mismatches.count > 1
+                                ? "\(mismatches.count) mismatches, first: " : "")
                             + "\(first.field) swift=\(first.swift) rust=\(first.rust)")
                 }
                 totalFrames += 1
             }
         }
-        try expect(totalFrames > 10_000, "expected a meaningful number of frames, got \(totalFrames)")
+        try expect(
+            totalFrames > 10_000, "expected a meaningful number of frames, got \(totalFrames)")
     },
 ]
-
-
 
 /// Comparison for `seed_mode: "live"` fixtures.
 ///
@@ -418,7 +433,9 @@ let goldenTraceTests: [TestCase] = [
 /// 90 s, `GO!` is announced, and without further crashes the run ends at 90 s
 /// with `GameOver`. Those are checked here; per-frame physics are covered by
 /// the seeded fixtures.
-func liveLifecycleMismatches(_ game: Game, _ expected: FixtureFrame, events: [RaceEvent]) -> [Mismatch] {
+func liveLifecycleMismatches(
+    _ game: Game, _ expected: FixtureFrame, events: [RaceEvent]
+) -> [Mismatch] {
     var out: [Mismatch] = []
     if game.phase.rawFixtureName != expected.phase {
         out.append(Mismatch(field: "phase", swift: game.phase.rawFixtureName, rust: expected.phase))

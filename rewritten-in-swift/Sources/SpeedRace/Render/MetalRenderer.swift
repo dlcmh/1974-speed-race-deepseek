@@ -259,7 +259,8 @@ public final class MetalRenderer {
     /// Metal render targets are stored top-row-first, the same y-down layout as
     /// the draw list, so no flip is applied — the port's equivalent of the
     /// canonical repo's "raw framebuffer is the truth" rule (DIVERGENCES N-0006).
-    private func readBack(_ target: MTLTexture) throws -> (width: Int, height: Int, pixels: [UInt8]) {
+    private func readBack(_ target: MTLTexture) throws -> (width: Int, height: Int, pixels: [UInt8])
+    {
         let width = Self.canvasWidth
         let height = Self.canvasHeight
         let bytesPerRow = width * 4

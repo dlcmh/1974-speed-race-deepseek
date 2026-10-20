@@ -129,7 +129,9 @@ let gameTests: [TestCase] = [
             for i in cars.indices {
                 var neighbours = 0
                 for j in cars.indices where j != i {
-                    if abs(cars[i].z - cars[j].z) < 130.0 && abs(cars[i].lateral - cars[j].lateral) < 0.24 {
+                    if abs(cars[i].z - cars[j].z) < 130.0
+                        && abs(cars[i].lateral - cars[j].lateral) < 0.24
+                    {
                         neighbours += 1
                     }
                 }

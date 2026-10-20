@@ -83,7 +83,8 @@ final class Synthesizer {
         if pending.count < 16 { pending.append(cue) }
     }
 
-    func render(into buffer: UnsafeMutablePointer<Float>, frames: Int, parameters: AudioParameters) {
+    func render(into buffer: UnsafeMutablePointer<Float>, frames: Int, parameters: AudioParameters)
+    {
         while let cue = pending.first {
             pending.removeFirst()
             addVoice(cue)
@@ -97,7 +98,8 @@ final class Synthesizer {
         let running = parameters.running
 
         for frame in 0..<frames {
-            var sample = muted ? 0 : engineSample(speed: speed, throttle: throttle, running: running)
+            var sample =
+                muted ? 0 : engineSample(speed: speed, throttle: throttle, running: running)
             if !muted {
                 for index in voices.indices {
                     guard var voice = voices[index] else { continue }
@@ -131,7 +133,8 @@ final class Synthesizer {
         let angle = phase * Float.rustTau
         let wobble = 1 + 0.012 * rustSin(time * Float.rustTau * 3)
 
-        var sample = rustSin(angle * wobble) * 0.52
+        var sample =
+            rustSin(angle * wobble) * 0.52
             + rustSin(angle * 2) * 0.23
             + rustSin(angle * 3) * 0.12
             + rustSin(angle * 4) * 0.06
@@ -170,12 +173,30 @@ private struct Voice {
 
     init(cue: AudioCue) {
         switch cue {
-        case .countdown: kind = .countdown; duration = 0.11; rng = 0x1000_0001
-        case .go: kind = .go; duration = 0.26; rng = 0x1000_0002
-        case .crash: kind = .crash; duration = 0.85; rng = 0xDEAD_BEEF
-        case .extend: kind = .extend; duration = 0.78; rng = 0x1000_0003
-        case .gameOver: kind = .gameOver; duration = 1.5; rng = 0x1000_0004
-        case .pass: kind = .pass; duration = 0.035; rng = 0x1000_0005
+        case .countdown:
+            kind = .countdown
+            duration = 0.11
+            rng = 0x1000_0001
+        case .go:
+            kind = .go
+            duration = 0.26
+            rng = 0x1000_0002
+        case .crash:
+            kind = .crash
+            duration = 0.85
+            rng = 0xDEAD_BEEF
+        case .extend:
+            kind = .extend
+            duration = 0.78
+            rng = 0x1000_0003
+        case .gameOver:
+            kind = .gameOver
+            duration = 1.5
+            rng = 0x1000_0004
+        case .pass:
+            kind = .pass
+            duration = 0.035
+            rng = 0x1000_0005
         }
     }
 
@@ -197,8 +218,10 @@ private struct Voice {
             value = max(-1, min(1, (noise * 0.8 + thud * 0.55) * fade * 0.82))
         case .extend:
             var sample: Float = 0
-            for (start, frequency, length) in [(Float(0), Float(660), Float(0.18)),
-                                               (0.16, 880, 0.18), (0.32, 1_320, 0.34)] {
+            for (start, frequency, length) in [
+                (Float(0), Float(660), Float(0.18)),
+                (0.16, 880, 0.18), (0.32, 1_320, 0.34),
+            ] {
                 if age >= start && age < start + length {
                     sample += tone(age - start, frequency, length, 0.8)
                 }
@@ -206,9 +229,11 @@ private struct Voice {
             value = max(-1, min(1, sample))
         case .gameOver:
             var sample: Float = 0
-            for (start, frequency, length) in [(Float(0), Float(392), Float(0.22)),
-                                               (0.22, 330, 0.22), (0.44, 262, 0.25),
-                                               (0.74, 196, 0.55)] {
+            for (start, frequency, length) in [
+                (Float(0), Float(392), Float(0.22)),
+                (0.22, 330, 0.22), (0.44, 262, 0.25),
+                (0.74, 196, 0.55),
+            ] {
                 if age >= start && age < start + length {
                     sample += tone(age - start, frequency, length, 0.8)
                 }
@@ -256,7 +281,8 @@ public final class ArcadeAudio {
         }
         let synth = synthesizer
         let params = parameters
-        let node = AVAudioSourceNode(format: format) { _, _, frameCount, audioBufferList -> OSStatus in
+        let node = AVAudioSourceNode(format: format) {
+            _, _, frameCount, audioBufferList -> OSStatus in
             let list = UnsafeMutableAudioBufferListPointer(audioBufferList)
             guard let first = list.first, let data = first.mData else { return noErr }
             let frames = Int(frameCount)

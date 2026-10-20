@@ -40,37 +40,37 @@ public func rustClamp(_ value: Float, _ lower: Float, _ upper: Float) -> Float {
 // libSystem functions; no dependency or C shim is added.
 
 @_silgen_name("sin")
-private func libm_sin_double(_ value: Double) -> Double
+private func libmSinDouble(_ value: Double) -> Double
 
 @_silgen_name("cos")
-private func libm_cos_double(_ value: Double) -> Double
+private func libmCosDouble(_ value: Double) -> Double
 
 @_silgen_name("sinf")
-private func libm_sinf(_ value: Float) -> Float
+private func libmSinf(_ value: Float) -> Float
 
 @_silgen_name("cosf")
-private func libm_cosf(_ value: Float) -> Float
+private func libmCosf(_ value: Float) -> Float
 
 /// Rust's `f32::sin` where the canonical call site resolves to the
 /// double-precision `sin` rounded once to `f32`.
 public func rustSin(_ value: Float) -> Float {
-    Float(libm_sin_double(Double(value)))
+    Float(libmSinDouble(Double(value)))
 }
 
 /// Rust's `f32::sin` where the canonical call site calls `sinf`.
 public func rustSinFloat(_ value: Float) -> Float {
-    libm_sinf(value)
+    libmSinf(value)
 }
 
 /// Rust's `f32::cos` where the canonical call site calls `cosf`.
 public func rustCosFloat(_ value: Float) -> Float {
-    libm_cosf(value)
+    libmCosf(value)
 }
 
 /// Rust's `f32::cos` where the canonical call site resolves to the
 /// double-precision `cos` rounded once to `f32`.
 public func rustCos(_ value: Float) -> Float {
-    Float(libm_cos_double(Double(value)))
+    Float(libmCosDouble(Double(value)))
 }
 
 /// Rust's `f32 as u32` saturating cast.

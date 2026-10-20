@@ -27,5 +27,5 @@ let rosterTests: [TestCase] = [
                     "missing glyph for '\(character)' in \"\(text)\"")
             }
         }
-    },
+    }
 ]

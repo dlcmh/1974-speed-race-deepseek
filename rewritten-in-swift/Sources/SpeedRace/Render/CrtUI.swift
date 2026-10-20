@@ -23,13 +23,16 @@ public enum CrtUI {
 
         if game.paused {
             list.rectangle(
-                0.0, 0.0, CrtScene.screenWidth, CrtScene.screenHeight, RGBAColor.rgba(0, 0, 0, 0.66))
+                0.0, 0.0, CrtScene.screenWidth, CrtScene.screenHeight, RGBAColor.rgba(0, 0, 0, 0.66)
+            )
             let pulse = 0.7 + 0.3 * abs(rustSin(time * 2.5))
             CrtScene.centeredTextShadow(
                 list, "PAUSED", y: 142.0, scale: 5.0, color: Palette.phosphorWhite.withAlpha(pulse),
                 shadow: Palette.void)
-            CrtScene.centeredText(list, "P OR ESC TO RESUME", y: 198.0, scale: 1.0, color: Palette.phosphor)
-            CrtScene.centeredText(list, "Q TO QUIT", y: 212.0, scale: 1.0, color: Palette.phosphorDim)
+            CrtScene.centeredText(
+                list, "P OR ESC TO RESUME", y: 198.0, scale: 1.0, color: Palette.phosphor)
+            CrtScene.centeredText(
+                list, "Q TO QUIT", y: 212.0, scale: 1.0, color: Palette.phosphorDim)
         }
     }
 
@@ -49,12 +52,14 @@ public enum CrtUI {
 
         let pulse = 0.62 + 0.38 * abs(rustSin(game.demoClock * 4.0))
         CrtScene.centeredTextShadow(
-            list, "PRESS ENTER TO START", y: 224.0, scale: 2.0, color: Palette.cream.withAlpha(pulse),
+            list, "PRESS ENTER TO START", y: 224.0, scale: 2.0,
+            color: Palette.cream.withAlpha(pulse),
             shadow: Palette.void)
         CrtScene.centeredText(
             list, "A/D OR ARROWS STEER   W/UP GAS", y: 251.0, scale: 1.0, color: Palette.phosphor)
         CrtScene.centeredText(
-            list, "AVOID TRAFFIC - BEAT THE CLOCK", y: 262.0, scale: 1.0, color: Palette.phosphorDim)
+            list, "AVOID TRAFFIC - BEAT THE CLOCK", y: 262.0, scale: 1.0, color: Palette.phosphorDim
+        )
 
         // Rust: `format!("HI SCORE {:06}", game.best)` — six digits, zero padded.
         let best = "HI SCORE " + pad(game.best, width: 6)
@@ -76,7 +81,8 @@ public enum CrtUI {
             shadow: Palette.phosphorDark)
         CrtScene.centeredText(
             list, "THE CLOCK STARTS ON GO", y: 208.0, scale: 1.0, color: Palette.phosphorDim)
-        CrtScene.centeredText(list, "HOLD GAS TO LAUNCH", y: 220.0, scale: 1.0, color: Palette.phosphor)
+        CrtScene.centeredText(
+            list, "HOLD GAS TO LAUNCH", y: 220.0, scale: 1.0, color: Palette.phosphor)
     }
 
     static func drawRaceNotice(_ list: DrawList, game: Game, time: Float) {
@@ -102,7 +108,8 @@ public enum CrtUI {
                 list.rectangleLines(
                     (CrtScene.screenWidth - width) * 0.5, 82.0, width, 24.0, thickness: 1.0,
                     Palette.phosphor.withAlpha(0.5))
-                CrtScene.centeredText(list, text, y: 91.0, scale: 2.0, color: Palette.cream.withAlpha(alpha))
+                CrtScene.centeredText(
+                    list, text, y: 91.0, scale: 2.0, color: Palette.cream.withAlpha(alpha))
             }
         }
 
@@ -122,7 +129,8 @@ public enum CrtUI {
     static func drawGameOver(_ list: DrawList, game: Game, time: Float) {
         list.rectangle(
             0.0, 0.0, CrtScene.screenWidth, CrtScene.screenHeight, RGBAColor.rgba(0, 0, 0, 0.76))
-        list.rectangle(12.0, 54.0, CrtScene.screenWidth - 24.0, 246.0, RGBAColor.rgba(0, 9, 3, 0.72))
+        list.rectangle(
+            12.0, 54.0, CrtScene.screenWidth - 24.0, 246.0, RGBAColor.rgba(0, 9, 3, 0.72))
         list.rectangleLines(
             12.0, 54.0, CrtScene.screenWidth - 24.0, 246.0, thickness: 1.0,
             Palette.phosphor.withAlpha(0.45))
@@ -133,7 +141,8 @@ public enum CrtUI {
         CrtScene.centeredText(list, "FINAL SCORE", y: 132.0, scale: 1.0, color: Palette.phosphor)
 
         let score = pad(min(game.score, 999_999), width: 6)
-        CrtScene.centeredTextShadow(list, score, y: 146.0, scale: 4.0, color: Palette.cream, shadow: Palette.void)
+        CrtScene.centeredTextShadow(
+            list, score, y: 146.0, scale: 4.0, color: Palette.cream, shadow: Palette.void)
 
         let stats =
             "PASSED " + pad(min(game.carsPassed, 99), width: 2) + "   TOP "
@@ -142,14 +151,16 @@ public enum CrtUI {
 
         if game.newBest {
             if rustSin(time * 4.0) > -0.15 {
-                CrtScene.centeredText(list, "NEW RECORD!", y: 206.0, scale: 2.0, color: Palette.ledAmber)
+                CrtScene.centeredText(
+                    list, "NEW RECORD!", y: 206.0, scale: 2.0, color: Palette.ledAmber)
             }
         } else {
             let best = "BEST " + pad(min(game.best, 999_999), width: 6)
             CrtScene.centeredText(list, best, y: 206.0, scale: 1.0, color: Palette.phosphor)
         }
 
-        CrtScene.centeredText(list, "ENTER  RACE AGAIN", y: 238.0, scale: 2.0, color: Palette.phosphorWhite)
+        CrtScene.centeredText(
+            list, "ENTER  RACE AGAIN", y: 238.0, scale: 2.0, color: Palette.phosphorWhite)
         CrtScene.centeredText(list, "TAITO  1974", y: 272.0, scale: 1.0, color: Palette.phosphor)
     }
 

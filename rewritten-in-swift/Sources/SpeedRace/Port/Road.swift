@@ -73,4 +73,3 @@ public enum Road {
         (center(distance + z) - center(distance) - tangent(distance) * z) * 0.92
     }
 }
-

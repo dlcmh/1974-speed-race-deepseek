@@ -7,6 +7,7 @@ import Metal
 // a resizable 960 x 720 window titled "SPEED RACE - Taito 1974", high-DPI
 // aware, with no mouse capture.
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var view: GameView?

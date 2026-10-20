@@ -152,9 +152,6 @@ public final class Game {
     public var rng: Rng
     var spawnTimer: Float = 1.0
 
-
-
-
     public init(best: UInt32, rng: Rng = .fromTime()) {
         self.best = best
         self.rng = rng
@@ -613,7 +610,6 @@ extension Game {
         updateExtensions()
     }
 }
-
 
 /// Stable names for fixtures and bug reports.
 extension Phase {

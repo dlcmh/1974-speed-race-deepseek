@@ -1,3 +1,4 @@
+// swift-format-ignore-file
 import Foundation
 
 // Speed Race (1974) — Swift + Metal port.

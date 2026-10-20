@@ -22,7 +22,7 @@ public enum PNGEncoder {
         precondition(pixels.count == width * height * 4, "pixel buffer size must match dimensions")
 
         // Raw scanlines with a leading filter byte.
-        var raw = [UInt8]()
+        var raw: [UInt8] = []
         raw.reserveCapacity(height * (width * 4 + 1))
         for row in 0..<height {
             raw.append(0)  // filter: None
@@ -30,7 +30,7 @@ public enum PNGEncoder {
             raw.append(contentsOf: pixels[start..<(start + width * 4)])
         }
 
-        var png = [UInt8]()
+        var png: [UInt8] = []
         png.append(contentsOf: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
 
         var header = Data()

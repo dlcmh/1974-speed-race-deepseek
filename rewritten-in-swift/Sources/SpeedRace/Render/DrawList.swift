@@ -246,16 +246,14 @@ public final class DrawList {
     /// `draw_circle_lines(cx, cy, radius, thickness, color)`, used for the
     /// speedometer's bezel and inner ring.
     ///
-    /// macroquad approximates the ring with many short quads; the port uses
-    /// the analytic capsule distance (a circle with a half-thickness band),
-    /// which is geometrically exact and anti-aliased at any scale. The
-    /// resulting ring differs from macroquad's only inside its own
-    /// anti-aliasing fringe (D-0006).
+    /// macroquad approximates the ring with many short quads. The port records
+    /// a `ring` primitive (radius plus thickness) and tessellates it on the
+    /// CPU into a triangle strip, so the outline stays smooth at the 1.5x CRT
+    /// scale (D-0006).
     public func circleLines(
         _ cx: Float, _ cy: Float, _ radius: Float, _ thickness: Float, _ color: RGBAColor
     ) {
         guard radius > 0, thickness > 0, color.a > 0 else { return }
-        let band = thickness * 0.5
         var instance = PrimitiveInstance()
         instance.centerX = cx
         instance.centerY = cy

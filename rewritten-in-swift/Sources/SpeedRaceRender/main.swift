@@ -45,10 +45,13 @@ struct RenderTool {
                 debugDump(renderer)
                 return
             default:
-                scenarios = [("swift-title-screen", titleGame(), 6.0), ("swift-gameplay", raceGame(), 12.0)]
+                scenarios = [
+                    ("swift-title-screen", titleGame(), 6.0), ("swift-gameplay", raceGame(), 12.0),
+                ]
             }
             for (name, game, time) in scenarios {
-                let pixels = try renderFrame(renderer: renderer, game: game, time: time, muted: false)
+                let pixels = try renderFrame(
+                    renderer: renderer, game: game, time: time, muted: false)
                 guard let pixels else { continue }
                 let data = PNGEncoder.encodeRGBA(
                     width: pixels.width, height: pixels.height, pixels: pixels.pixels)
@@ -75,8 +78,10 @@ struct RenderTool {
                 cabinet.begin()
                 cabinet.rectangle(0, 0, 960, 720, RGBAColor.rgb(0, 0, 0))
                 if cabinetOnly { Cabinet.draw(cabinet, game: game, muted: false) }
-                let pixels = try renderer.render(crt: crt, cabinet: cabinet, drawable: nil, viewport: nil)!
-                let data = PNGEncoder.encodeRGBA(width: pixels.width, height: pixels.height, pixels: pixels.pixels)
+                let pixels = try renderer.render(
+                    crt: crt, cabinet: cabinet, drawable: nil, viewport: nil)!
+                let data = PNGEncoder.encodeRGBA(
+                    width: pixels.width, height: pixels.height, pixels: pixels.pixels)
                 let url = URL(fileURLWithPath: "/tmp/rendertest2/\(name).png")
                 try data.write(to: url)
                 print("wrote \(url.path)")

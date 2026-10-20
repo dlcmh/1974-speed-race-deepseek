@@ -70,7 +70,9 @@ public enum Cabinet {
         list.rectangle(292.0, 102.0, 376.0, 556.0, RGBAColor.rgba(72, 255, 130, 0.025))
 
         // Screws.
-        for (x, y): (Float, Float) in [(298.0, 108.0), (662.0, 108.0), (298.0, 652.0), (662.0, 652.0)] {
+        for (x, y): (Float, Float) in [
+            (298.0, 108.0), (662.0, 108.0), (298.0, 652.0), (662.0, 652.0),
+        ] {
             list.circle(x, y, 3.0, RGBAColor.rgb(44, 38, 29))
             list.circle(x, y, 1.2, RGBAColor.rgb(90, 77, 54))
         }
@@ -93,7 +95,8 @@ public enum Cabinet {
         list.rectangle(x, y, w, h, RGBAColor.rgba(0, 0, 0, 0.55))
         list.rectangle(x + 3.0, y + 3.0, w - 6.0, h - 6.0, RGBAColor.rgb(5, 10, 7))
         list.rectangleLines(x, y, w, h, thickness: 2.0, Palette.orangeDark)
-        list.rectangleLines(x + 5.0, y + 5.0, w - 10.0, h - 10.0, thickness: 1.0, RGBAColor.rgb(48, 113, 65))
+        list.rectangleLines(
+            x + 5.0, y + 5.0, w - 10.0, h - 10.0, thickness: 1.0, RGBAColor.rgb(48, 113, 65))
 
         // Taito badge.
         panel(
@@ -140,8 +143,10 @@ public enum Cabinet {
         CrtScene.drawPixelText(
             list, "TAITO", x: x + 14.0, y: y + 18.0, scale: 1.5, color: Palette.phosphorWhite)
 
-        CrtScene.drawPixelText(list, "SPEED", x: x + 38.0, y: y + 46.0, scale: 2.0, color: Palette.cream)
-        CrtScene.drawPixelText(list, "RACE", x: x + 44.0, y: y + 66.0, scale: 2.0, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "SPEED", x: x + 38.0, y: y + 46.0, scale: 2.0, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "RACE", x: x + 44.0, y: y + 66.0, scale: 2.0, color: Palette.cream)
         list.rectangle(x + 30.0, y + 86.0, 70.0, 1.0, Palette.orangeDark)
 
         // Analog speedometer.
@@ -153,8 +158,10 @@ public enum Cabinet {
         panel(
             list, x + 10.0, y + 250.0, 108.0, 58.0, fill: RGBAColor.rgb(25, 11, 5),
             border: Palette.orangeDark)
-        CrtScene.drawPixelText(list, "GAS", x: x + 18.0, y: y + 260.0, scale: 1.5, color: Palette.cream)
-        CrtScene.drawPixelText(list, "BRAKE", x: x + 18.0, y: y + 282.0, scale: 1.5, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "GAS", x: x + 18.0, y: y + 260.0, scale: 1.5, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "BRAKE", x: x + 18.0, y: y + 282.0, scale: 1.5, color: Palette.cream)
         let gasOn = game.controls.throttle > 0.15
         let brakeOn = game.controls.brake > 0.15
         list.circle(
@@ -179,7 +186,8 @@ public enum Cabinet {
         drawSideCar(list, cx: x + 64.0, y: y + 410.0)
 
         CrtScene.drawPixelText(
-            list, "100 YEN", x: x + 30.0, y: y + 512.0, scale: 1.0, color: Palette.cream.withAlpha(0.7))
+            list, "100 YEN", x: x + 30.0, y: y + 512.0, scale: 1.0,
+            color: Palette.cream.withAlpha(0.7))
     }
 
     static func drawSpeedometer(
@@ -244,7 +252,8 @@ public enum Cabinet {
         list.rectangle(cx - 51.0, y + 10.0, 9.0, 5.0, RGBAColor.rgb(24, 16, 11))
         list.rectangle(cx + 43.0, y + 10.0, 10.0, 5.0, RGBAColor.rgb(24, 16, 11))
         list.circle(cx + 6.0, y + 4.0, 7.0, RGBAColor.rgb(245, 241, 221))
-        CrtScene.drawPixelText(list, "12", x: cx - 1.0, y: y, scale: 1.0, color: RGBAColor.rgb(29, 33, 26))
+        CrtScene.drawPixelText(
+            list, "12", x: cx - 1.0, y: y, scale: 1.0, color: RGBAColor.rgb(29, 33, 26))
     }
 
     // MARK: - Right panel (LED scoreboard)
@@ -258,7 +267,8 @@ public enum Cabinet {
         list.rectangle(x - 5.0, y - 5.0, w + 10.0, h + 10.0, Palette.orangeDark)
         list.rectangle(x, y, w, h, RGBAColor.rgb(5, 8, 5))
         list.rectangleLines(x, y, w, h, thickness: 2.0, RGBAColor.rgb(12, 12, 8))
-        list.rectangleLines(x + 5.0, y + 5.0, w - 10.0, h - 10.0, thickness: 1.0, RGBAColor.rgb(70, 54, 31))
+        list.rectangleLines(
+            x + 5.0, y + 5.0, w - 10.0, h - 10.0, thickness: 1.0, RGBAColor.rgb(70, 54, 31))
 
         drawLedModule(
             list, x: x + 8.0, y: y + 10.0, w: w - 16.0, h: 58.0, label: "SCORE", value: game.score,
@@ -270,21 +280,26 @@ public enum Cabinet {
             list, x: x + 8.0, y: y + 165.0, w: w - 16.0, h: 59.0, label: "EXTEND",
             value: game.nextExtend, digits: 6, digitW: 10.0, digitH: 16.0, thickness: 1.6)
         drawLedModule(
-            list, x: x + 8.0, y: y + 234.0, w: w - 16.0, h: 58.0, label: "HI SCORE", value: game.best,
+            list, x: x + 8.0, y: y + 234.0, w: w - 16.0, h: 58.0, label: "HI SCORE",
+            value: game.best,
             digits: 6, digitW: 10.0, digitH: 16.0, thickness: 1.6)
 
         list.rectangle(x + 8.0, y + 303.0, w - 16.0, 1.0, RGBAColor.rgb(66, 49, 27))
         CrtScene.drawPixelText(
-            list, "TAITO", x: x + 35.0, y: y + 317.0, scale: 1.5, color: Palette.cream.withAlpha(0.75))
+            list, "TAITO", x: x + 35.0, y: y + 317.0, scale: 1.5,
+            color: Palette.cream.withAlpha(0.75))
         CrtScene.drawPixelText(
-            list, "1974", x: x + 39.0, y: y + 336.0, scale: 1.0, color: Palette.cream.withAlpha(0.4))
+            list, "1974", x: x + 39.0, y: y + 336.0, scale: 1.0, color: Palette.cream.withAlpha(0.4)
+        )
 
         // Lower side art and coin door.
         let cy = y + 400.0
         list.rectangle(x + 8.0, cy, w - 16.0, 80.0, RGBAColor.rgb(38, 16, 7))
         list.rectangleLines(x + 8.0, cy, w - 16.0, 80.0, thickness: 1.0, Palette.orangeLight)
-        CrtScene.drawPixelText(list, "FREE", x: x + 36.0, y: cy + 12.0, scale: 1.5, color: Palette.cream)
-        CrtScene.drawPixelText(list, "PLAY", x: x + 36.0, y: cy + 28.0, scale: 1.5, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "FREE", x: x + 36.0, y: cy + 12.0, scale: 1.5, color: Palette.cream)
+        CrtScene.drawPixelText(
+            list, "PLAY", x: x + 36.0, y: cy + 28.0, scale: 1.5, color: Palette.cream)
         list.rectangle(x + 32.0, cy + 50.0, 48.0, 7.0, RGBAColor.rgb(9, 8, 6))
         list.rectangle(x + 35.0, cy + 52.0, 42.0, 2.0, RGBAColor.rgb(110, 83, 46))
         list.circle(x + 56.0, cy + 68.0, 3.0, Palette.ledGreen)
@@ -300,7 +315,8 @@ public enum Cabinet {
         // Yellow label strip, like the original cabinet's scoreboard.
         list.rectangle(x + 2.0, y + 2.0, w - 4.0, 15.0, RGBAColor.rgb(216, 160, 48))
         list.rectangle(x + 2.0, y + 2.0, w - 4.0, 2.0, RGBAColor.rgb(255, 220, 123))
-        CrtScene.drawPixelText(list, label, x: x + 5.0, y: y + 6.0, scale: 1.0, color: RGBAColor.rgb(22, 24, 8))
+        CrtScene.drawPixelText(
+            list, label, x: x + 5.0, y: y + 6.0, scale: 1.0, color: RGBAColor.rgb(22, 24, 8))
 
         // Rust: `(w - 8.0 - digit_w * digits) / max(digits - 1, 1) as f32`;
         // `max(total, ...)`-style guards keep a one-digit module sane.
@@ -383,10 +399,12 @@ public enum Cabinet {
             ? "P PAUSE   M UNMUTE   F FULLSCREEN   Q QUIT"
             : "P PAUSE   M MUTE   F FULLSCREEN   Q QUIT"
         CrtScene.drawPixelText(
-            list, lineOne, x: x + (w - PixelFont.width(lineOne, 2.0)) * 0.5, y: y + 10.0, scale: 2.0,
+            list, lineOne, x: x + (w - PixelFont.width(lineOne, 2.0)) * 0.5, y: y + 10.0,
+            scale: 2.0,
             color: Palette.cream)
         CrtScene.drawPixelText(
-            list, lineTwo, x: x + (w - PixelFont.width(lineTwo, 1.5)) * 0.5, y: y + 31.0, scale: 1.5,
+            list, lineTwo, x: x + (w - PixelFont.width(lineTwo, 1.5)) * 0.5, y: y + 31.0,
+            scale: 1.5,
             color: Palette.cream.withAlpha(0.55))
     }
 }

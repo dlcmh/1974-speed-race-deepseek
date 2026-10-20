@@ -11,6 +11,7 @@ import SpeedRace
 // Frame pipeline, matching src/main.rs:
 //   input poll -> game.update -> drain events -> render -> present.
 
+@MainActor
 final class GameView: MTKView, MTKViewDelegate {
     private let game: Game
     private let renderer: MetalRenderer

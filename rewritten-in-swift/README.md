@@ -15,7 +15,7 @@ and compares f32 values as raw bit patterns.
 ```sh
 cd rewritten-in-swift
 swift run speed-race-app          # play
-swift run parity-check            # gate: 22 checks
+./tools/check.sh                  # gate: format lint, warnings-as-errors build, 22 checks
 swift run speed-race-render       # write docs screenshots headlessly
 ```
 
@@ -67,6 +67,20 @@ The mouse is never captured or hidden.
   bug catalogue, dead ends, alternatives, compromises and a reusable playbook
 - [METAL-VS-PACMAN.md](docs/METAL-VS-PACMAN.md) — why the first renderer failed
 - [INVESTIGATION-renderer.md](docs/INVESTIGATION-renderer.md) — the full record
+
+## Linting and static checks
+
+Swift ships no Clippy equivalent. The gate uses the two tools that do exist:
+
+| Check | Tool | Catches |
+| --- | --- | --- |
+| `swift-format lint` | Apple's `swift-format`, bundled with the Command Line Tools | style, line length, naming, one statement per line, trailing commas |
+| `swift build -Xswiftc -warnings-as-errors` | the Swift compiler | unused variables and dead stores, unreachable code, actor-isolation mistakes, deprecated API |
+
+SwiftLint and Periphery (dead-code analysis across files) are third-party and
+deliberately not required. `tools/check.sh` runs both stages plus the parity
+suite; formatting is applied with
+`xcrun swift-format format --in-place --recursive Sources Tests`.
 
 ## Working agreement
 

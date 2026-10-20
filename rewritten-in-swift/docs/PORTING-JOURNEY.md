@@ -665,7 +665,9 @@ stream, and reads a key.
 ### Phase 2 — Port the pure logic first
 
 6. Port modules in dependency order (RNG → geometry → rules). Keep platform
-   types out of the simulation.
+   types out of the simulation. Set up the static gate at the same time:
+   `swift-format` for style, `-warnings-as-errors` for unused/dead/unreachable
+   code, and a single `tools/check.sh` that runs both plus the tests.
 7. Port the canonical tests one-for-one, keeping their names.
 8. Add the same deterministic seam the original has (`with_seed`-style), even if
    it is test-only.
@@ -721,7 +723,12 @@ diff by eye, plus a numerical pixel test.
 ```sh
 cd rewritten-in-swift
 
-# Everything the port claims to guarantee about behaviour.
+# Everything, in one command: format lint, warnings-as-errors, parity.
+./tools/check.sh                           # 22/22 after all three stages
+
+# Individually:
+xcrun swift-format lint --recursive Sources Tests
+swift build -c release -Xswiftc -warnings-as-errors
 swift run parity-check                     # 22/22
 
 # The app builds and launches.

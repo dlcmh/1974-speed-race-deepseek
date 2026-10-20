@@ -299,3 +299,38 @@ limitation, and a suspected RNG miscompilation that was three unrelated logic
 bugs); both are recorded with their corrections rather than quietly removed.
 A future reader must be able to tell what is known, what is measured, and what
 is merely believed.
+
+---
+
+## P-0017 — Static checks: `swift-format` plus warnings-as-errors
+
+**Accepted.**
+
+There is no Clippy for Swift in the toolchain. The gate is therefore:
+
+1. `xcrun swift-format lint --recursive Sources Tests` — Apple's formatter,
+   bundled with the Command Line Tools, configured by `.swift-format` to the
+   house style (4-space indent, 100 columns).
+2. `swift build -c release -Xswiftc -warnings-as-errors` — the compiler itself
+   reports unused variables, dead stores, unreachable code and Swift 6 actor
+   isolation violations. Treating them as errors is the closest built-in
+   equivalent to `cargo clippy -- -D warnings`.
+3. `swift run parity-check` — behaviour.
+
+All three run from `tools/check.sh`.
+
+**Rejected:** SwiftLint and Periphery (both third-party). Periphery does
+project-wide dead-code analysis that the compiler cannot, but it is a SwiftPM
+plugin and would add the first external dependency to a repository whose whole
+"no assets, no dependencies" stance is deliberate. Revisit if the codebase grows
+beyond a few modules.
+
+**Why warnings-as-errors matters here:** it immediately caught a real dead
+variable left behind by the renderer rewrite (`band` in `circleLines`) and six
+Swift 6 actor-isolation warnings in the AppKit layer. Neither had shown up in
+normal builds because incremental compilation had cached the earlier objects.
+That is the same class of problem that prolonged the parity investigation:
+stale or ignored diagnostics.
+
+**Formatting is not a separate style debate:** `swift-format` is authoritative,
+as `cargo fmt` is for the canonical game. Run it before committing.
