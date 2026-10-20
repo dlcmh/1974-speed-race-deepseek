@@ -7,7 +7,7 @@
 # in a tiny crate root and the trace driver, builds with the system cargo and
 # writes JSON Lines fixtures to ../../Fixtures/parity/.
 #
-# The canonical crate is never modified. See docs/PARITY.md.
+# The canonical crate is never modified. See docs/INVESTIGATION-parity.md.
 #
 # Usage: ./generate.sh            (writes ../../Fixtures/parity/*.jsonl)
 #        ./generate.sh --keep     (leaves the scratch crate for inspection)
@@ -38,7 +38,7 @@ rm -rf "$work"
 mkdir -p "$work/src" "$out"
 cp "$src/game.rs" "$src/rng.rs" "$src/road.rs" "$work/src/"
 # The scenarios need three private items to build a reproducible start state
-# without touching the canonical file (docs/PARITY.md "Generator construction"):
+# without touching the canonical file (docs/INVESTIGATION-parity.md "Generator construction"):
 # `Game::rng`, `Game::traffic` and `Game::seed_traffic`. Widen them to
 # `pub(crate)` in the *scratch copy only*. The substitution is checked: the
 # script fails loudly if the canonical source no longer matches.

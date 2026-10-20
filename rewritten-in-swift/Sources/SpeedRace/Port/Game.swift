@@ -10,7 +10,7 @@ import Foundation
 // small input snapshot and a delta time, and reports what happened through
 // events. That keeps it straightforward to test and lets the app own sound and
 // pixels. This mirrors the Rust module one-for-one — see docs/PORTING.md for
-// the symbol-level mapping and docs/PARITY.md for how equality is proven.
+// the symbol-level mapping and docs/INVESTIGATION-parity.md for how equality is proven.
 
 /// Snapshot of what the driver is asking the car to do this frame.
 public struct Controls: Sendable, Equatable {

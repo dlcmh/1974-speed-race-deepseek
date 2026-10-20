@@ -11,7 +11,7 @@ import SpeedRace
 //      frame must agree bit for bit (fixtures in Fixtures/parity/).
 //
 // Exit status is non-zero if anything fails, so this is also the CI gate.
-// See docs/PARITY.md for what each suite proves.
+// See docs/INVESTIGATION-parity.md for what each suite proves.
 
 /// Minimal assertion harness. Throws a `Failure` carrying a readable message
 /// so the runner can report *every* failing case rather than stopping at the

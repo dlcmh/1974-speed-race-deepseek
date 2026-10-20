@@ -7,15 +7,14 @@
 // Keeping randomness local makes the traffic simulation reproducible in tests
 // and avoids pulling in a dependency for a handful of calls per second.
 //
-// Port notes (docs/PARITY.md "Bugs the traces found"):
+// Port notes (docs/PORTING-JOURNEY.md):
 //   * UInt64 wraps by definition in Swift, matching Rust's u64 arithmetic.
-//   * `unit()` must go through `UInt32` before the float conversion. Writing
-//     `Float(bits) / Float(UInt32(1) << 24)` looks harmless, but Swift binds
-//     the integer literal `1 << 24` to the same type as `Float(bits)`, i.e.
-//     Int64 on a 64-bit Mac, so the divisor becomes -16,777,216.0 and the
-//     result is silently negative. Rust's `(x >> 40)` is a u32 and its
-//     divisor is +16,777,216.0. The explicit UInt32 conversion below is the
-//     fix, and `RngTests` pins the bit patterns.
+//   * `unit()` converts through `UInt32` so the types are exactly Rust's
+//     (`u64 >> 40` to `u32`, divided by `1u32 << 24`). This is defensive: both
+//     the explicit and the implicit spelling were measured to produce the same
+//     bits on this toolchain, but the explicit form cannot depend on literal
+//     inference (an earlier note in this file wrongly claimed the implicit form
+//     produced a negative divisor — see the journey document's "false alarms").
 //   * `fromTime()` uses the same nanosecond epoch and salt as Rust's
 //     `Rng::from_time`.
 import Foundation
@@ -75,42 +74,16 @@ public struct Rng: Sendable, Equatable {
 
     /// Uniform integer in `[0, n)` — Rust: `(self.next_u64() % n as u64) as usize`.
     ///
-    /// Both operands are converted to `UInt64` explicitly. Relying on Swift to
-    /// widen the `Int` literal implicitly produced wrong values here: a
-    /// debug (`-Onone`) build of the port returned 1 for the very first
-    /// `below(3)` draw (which is 0 modulo 3) whenever the result immediately
-    /// initialised a `UInt8` inside a struct literal. The golden trace suite
-    /// caught it; this spelling removes the ambiguity.
+    /// Both operands are converted to `UInt64` explicitly so the expression
+    /// cannot depend on literal inference. (An earlier version of this comment
+    /// blamed a debug-build miscompilation for a mismatch that later turned out
+    /// to be three unrelated logic bugs in the simulation; see
+    /// `docs/PORTING-JOURNEY.md` §6, false alarm FA-01.)
     public mutating func below(_ n: Int) -> Int {
         let bound = UInt64(n)
         if bound == 0 {
             return 0
         }
-        return Int(rustRemainder(nextU64(), bound))
+        return Int(nextU64() % bound)
     }
-}
-
-/// Rust's `a % b` for `u64`, implemented without relying on the operator's
-/// type inference.
-///
-/// Why this exists (docs/PARITY.md "Bugs the traces found"): under a debug
-/// (`-Onone`) build of this exact toolchain, `UInt64 % UInt64` returned wrong
-/// values in one call site of the game initialiser, which made the seeded
-/// traffic differ from the canonical Rust game while every hand-written
-/// check of the same expression passed. The bitwise long division below is
-/// written in terms of plain integers and comparisons only, so no numeric
-/// operator's overload resolution can change its meaning. It is exercised
-/// against Rust fixtures by the parity suite.
-public func rustRemainder(_ dividend: UInt64, _ divisor: UInt64) -> UInt64 {
-    precondition(divisor != 0, "division by zero")
-    var remainder: UInt64 = 0
-    var bitIndex: Int = 63
-    while bitIndex >= 0 {
-        remainder = (remainder << 1) | ((dividend >> UInt64(bitIndex)) & 1)
-        if remainder >= divisor {
-            remainder = remainder - divisor
-        }
-        bitIndex -= 1
-    }
-    return remainder
 }

@@ -114,6 +114,6 @@ extension Float {
     /// `0x1.921fb6p+1 * 2` = `0x40C90FDC` — one ULP *above* Rust — and that
     /// shifted every `rng.range(0.0, std::f32::consts::TAU)` result. The
     /// golden traces caught it as a one-ULP traffic wobble-phase mismatch
-    /// (docs/PARITY.md "Bugs the traces found"). Always use this constant.
+    /// (docs/PORTING-JOURNEY.md §6). Always use this constant.
     public static let rustTau: Float = 6.2831855
 }

@@ -5,7 +5,7 @@
 // The endless road: a cheap pseudo-3D projection plus a hand-tuned,
 // deterministic centre line. Nothing here knows about cars or scores.
 //
-// Floating point note (docs/PARITY.md): every expression keeps the Rust
+// Floating point note (docs/INVESTIGATION-parity.md): every expression keeps the Rust
 // evaluation order and f32 width. Apple silicon evaluates Float operations
 // in single precision exactly like Rust on aarch64, so results are
 // bit-identical for the same inputs. Double intermediates would not be.

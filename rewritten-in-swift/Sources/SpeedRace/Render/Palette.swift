@@ -8,7 +8,7 @@ import Foundation
 // These are data, not behaviour: every value is copied from the Rust source.
 // If you change a colour or a glyph here you are changing the canonical game
 // artwork, so the Rust reference must change in the same commit (see
-// docs/PARITY.md "What parity means").
+// docs/INVESTIGATION-parity.md "What parity means").
 
 /// Palette from gfx.rs. Names match the Rust constants so a diff reader can
 /// grep either language and find its twin.

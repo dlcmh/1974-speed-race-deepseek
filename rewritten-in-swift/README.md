@@ -63,6 +63,8 @@ The mouse is never captured or hidden.
 - [DECISIONS.md](docs/DECISIONS.md) — architecture decision records
 - [DIVERGENCES.md](docs/DIVERGENCES.md) — every intentional difference from Rust
 - [PARITY](docs/INVESTIGATION-parity.md) — how parity is proven, and what it cost
+- [PORTING-JOURNEY.md](docs/PORTING-JOURNEY.md) — the complete account: timeline,
+  bug catalogue, dead ends, alternatives, compromises and a reusable playbook
 - [METAL-VS-PACMAN.md](docs/METAL-VS-PACMAN.md) — why the first renderer failed
 - [INVESTIGATION-renderer.md](docs/INVESTIGATION-renderer.md) — the full record
 

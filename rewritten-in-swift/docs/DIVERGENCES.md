@@ -10,7 +10,7 @@ listed here is meant to be identical, and the parity suite proves it for logic.
 replayed frames: countdown, 90-second clock, throttle/brake/steering physics,
 edge clamping, traffic spawning and movement, collisions, track restarts,
 overtaking and speed-based scoring, time extensions, best-score writes and
-game-over. See `docs/PARITY.md`.
+game-over. See `docs/INVESTIGATION-parity.md`.
 
 ## Numeric implementation details (necessary, invisible)
 

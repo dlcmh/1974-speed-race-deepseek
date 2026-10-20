@@ -2,7 +2,7 @@
 # writes its own manifest with a `[workspace]` marker so Cargo does not try to
 # treat this directory (or the Swift package) as a workspace root.
 #
-# See docs/PARITY.md for why the generator copies src/{game,rng,road}.rs
+# See docs/INVESTIGATION-parity.md for why the generator copies src/{game,rng,road}.rs
 # verbatim instead of depending on the canonical crate through Cargo.
 [workspace]
 [package]

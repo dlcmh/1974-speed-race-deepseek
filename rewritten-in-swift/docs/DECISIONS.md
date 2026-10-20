@@ -281,3 +281,21 @@ does not authorise changing it without a direct request.
 **Recorded here rather than only in the conversation** so the working agreement
 is visible to anyone reading the repository, and so future sessions do not
 re-ask the question.
+
+---
+
+## P-0016 — This port documents its own process
+
+**Accepted.**
+
+Every non-trivial choice, every disproved hypothesis and every correction goes
+into `docs/`, not just into commit messages. [PORTING-JOURNEY.md](PORTING-JOURNEY.md)
+is the entry point and is intended as a baseline for future ports of other
+canonical projects.
+
+**Why:** the documentation is part of the deliverable. Two claims made during
+this work were later disproved (a buffer-lifetime bug mistaken for a driver
+limitation, and a suspected RNG miscompilation that was three unrelated logic
+bugs); both are recorded with their corrections rather than quietly removed.
+A future reader must be able to tell what is known, what is measured, and what
+is merely believed.

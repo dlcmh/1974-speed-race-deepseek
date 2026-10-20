@@ -7,7 +7,7 @@
 //
 // Every frame line records the input applied and the state that came out, with
 // f32 values encoded as raw IEEE-754 bit patterns so the Swift side can compare
-// exactly. Format v2 — see docs/PARITY.md:
+// exactly. Format v2 — see docs/INVESTIGATION-parity.md:
 //
 //   {"header":true,"format":"speed-race-parity","version":2,
 //    "scenario":"full-throttle","seed":1974,"best":0,
@@ -168,7 +168,7 @@ fn run_scenario(scenario: &Scenario, commit: &str) -> String {
         // and only then swaps in `Rng::new(seed)`. Its constructed traffic is
         // therefore not reproducible from `seed`. The scenarios instead build
         // the same observable state explicitly, with the clock dependency
-        // removed. docs/PARITY.md explains why this is a faithful model.
+        // removed. docs/INVESTIGATION-parity.md explains why this is a faithful model.
         SeedMode::Seeded(seed) => {
             let mut game = Game::new(scenario.best);
             game.traffic.clear();

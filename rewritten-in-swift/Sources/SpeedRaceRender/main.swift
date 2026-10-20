@@ -7,7 +7,7 @@
 // Renders the cabinet exactly as the window would (same renderer, same draw
 // lists, same CRT texture) but writes PNGs instead of presenting a drawable.
 // The output is compared with the canonical Rust screenshots in
-// ../../docs/title-screen.png and ../../docs/gameplay.png; see docs/PARITY.md.
+// ../../docs/title-screen.png and ../../docs/gameplay.png; see docs/INVESTIGATION-parity.md.
 //
 // This is a development tool, not part of the game: it lives in its own target
 // so the app never links a screenshot path that could be left enabled.

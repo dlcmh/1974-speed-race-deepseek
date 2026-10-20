@@ -2,7 +2,7 @@
 // tools/parity-gen/generate.sh from the canonical Rust game and replays them
 // through the ported `Game`.
 //
-// See docs/PARITY.md. f32 fields are compared as raw IEEE-754 bit patterns, so
+// See docs/INVESTIGATION-parity.md. f32 fields are compared as raw IEEE-754 bit patterns, so
 // any drift — even one ULP — fails the suite.
 
 import Foundation
@@ -358,7 +358,7 @@ let goldenTraceTests: [TestCase] = [
             // Rust: `Game::with_seed(best, seed)` seeds through `Rng::new`,
             // which clamps zero to one. The fixture records both the declared
             // seed and the clamped `game_seed`; replay with the latter.
-            // Replay model (docs/PARITY.md):
+            // Replay model (docs/INVESTIGATION-parity.md):
             //  1. construct the game the same way the generator did,
             //  2. compare the *freshly constructed* state against frame 0's
             //     "constructed" fields when the generator was seeded,
@@ -384,7 +384,7 @@ let goldenTraceTests: [TestCase] = [
                 // cannot record, so traffic, snake-case scores, the clock
                 // seed's knock-on state and collision-driven `lateral` are
                 // all unreproducible; only the deterministic core is compared
-                // (docs/PARITY.md "Live scenarios").
+                // (docs/INVESTIGATION-parity.md "Live scenarios").
                 let mismatches: [Mismatch]
                 if header.seedMode == "seeded" {
                     mismatches = frameMismatches(
