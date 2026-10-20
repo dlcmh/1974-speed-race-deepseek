@@ -1,0 +1,23 @@
+# SwiftPM build products and per-user state
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj
+
+# Runtime files created by the Swift port (see Support/HighScore.swift and
+# App/ScreenCapture.swift). They are per-Mac state, never shared with the
+# Rust game, and must never be committed.
+.speed_race_1974_swift_highscore
+speed-race-swift-screenshot.png
+
+# Dump of the last frame rendered, for visual-parity work in docs/.
+docs/swift-*.png
+!docs/swift-title-screen.png
+!docs/swift-gameplay.png
+
+# Editor noise
+*.swp
+.DS_Store
+
+# Scratch crate materialised by tools/parity-gen/generate.sh
+tools/parity-gen/.work/

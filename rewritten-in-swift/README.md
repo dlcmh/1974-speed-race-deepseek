@@ -1,0 +1,71 @@
+# SPEED RACE (1974) — Swift + Metal port
+
+A Swift port of the canonical Rust game in the repository root
+(`src/`, pinned at `d5f4420`), using Metal for rendering. Every pixel and every
+sample is generated in code; there are no image, font or audio assets.
+
+The Rust game is the reference implementation. Behavioural parity is enforced by
+a golden-trace harness that replays fixtures produced by the real Rust `Game`
+and compares f32 values as raw bit patterns.
+
+![Title screen](docs/swift-title-screen.png)
+
+## Run it
+
+```sh
+cd rewritten-in-swift
+swift run speed-race-app          # play
+swift run parity-check            # gate: 22 checks
+swift run speed-race-render       # write docs screenshots headlessly
+```
+
+Requires macOS 14+ and a Swift 6 toolchain. No third-party dependencies.
+
+## Controls
+
+| Action | Keyboard |
+| --- | --- |
+| Start / race again | **Enter** or **Space** |
+| Steer | **A D** or **← →** |
+| Accelerate | **W** / **↑** / **Space** |
+| Brake | **S** / **↓** |
+| Pause | **P** or **Esc** |
+| Mute | **M** |
+| Fullscreen | **F** |
+| Screenshot (F12) | writes `speed-race-swift-screenshot.png` |
+| Quit | **Q** |
+
+The mouse is never captured or hidden.
+
+![Gameplay](docs/swift-gameplay.png)
+
+## Layout
+
+| Path | Responsibility |
+| --- | --- |
+| `Sources/SpeedRace/Port/Game.swift` | rules, traffic, scoring, crashes (port of `game.rs`) |
+| `Sources/SpeedRace/Port/Road.swift` | pseudo-3D projection and centre line (`road.rs`) |
+| `Sources/SpeedRace/Port/Rng.swift` | deterministic xorshift RNG (`rng.rs`) |
+| `Sources/SpeedRace/Port/Input.swift` | keyboard state and key map (`input.rs`) |
+| `Sources/SpeedRace/Render/` | draw list, CPU triangulation, Metal renderer |
+| `Sources/SpeedRace/Support/AudioEngine.swift` | continuous engine synth and one-shots (`audio.rs`) |
+| `Sources/SpeedRace/Support/` | PNG encoder, Rust-numeric helpers, high score, screenshots |
+| `Sources/SpeedRaceApp/` | AppKit window, MTKView, frame loop |
+| `Tests/ParityCheck/` | ported unit tests and the golden-trace gate |
+| `Fixtures/parity/` | fixtures generated from the canonical Rust game |
+| `tools/parity-gen/` | generator (copies Rust modules verbatim into a scratch crate) |
+
+## Documents
+
+- [DECISIONS.md](docs/DECISIONS.md) — architecture decision records
+- [DIVERGENCES.md](docs/DIVERGENCES.md) — every intentional difference from Rust
+- [PARITY](docs/INVESTIGATION-parity.md) — how parity is proven, and what it cost
+- [METAL-VS-PACMAN.md](docs/METAL-VS-PACMAN.md) — why the first renderer failed
+- [INVESTIGATION-renderer.md](docs/INVESTIGATION-renderer.md) — the full record
+
+## Status
+
+Playable: attract screen, countdown, race, crash/restart, game over, scoreboard,
+engine audio and one-shot effects. Gamepad support is not ported yet; the
+high-score file is `~/.speed_race_1974_swift_highscore`, deliberately separate
+from the Rust game's.
