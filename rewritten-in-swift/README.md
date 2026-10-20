@@ -63,6 +63,12 @@ The mouse is never captured or hidden.
 - [METAL-VS-PACMAN.md](docs/METAL-VS-PACMAN.md) — why the first renderer failed
 - [INVESTIGATION-renderer.md](docs/INVESTIGATION-renderer.md) — the full record
 
+## Working agreement
+
+Commits and pushes are handled by the agent without asking; see
+[DECISIONS.md](docs/DECISIONS.md) P-0015 for the exact scope and the git rules
+that still apply (no force-push, no rewritten history, no build output).
+
 ## Status
 
 Playable: attract screen, countdown, race, crash/restart, game over, scoreboard,

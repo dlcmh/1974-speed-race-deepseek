@@ -248,3 +248,33 @@ released before the command buffer executed. Buffers are now retained
 renderer switches pipeline per segment. Two ordering bugs were caught this way:
 the road being flushed after the CRT overlay (drawing over the title text), and
 the control deck — recorded *after* the CRT blit — being skipped entirely.
+
+---
+
+## P-0015 — Committing and pushing are delegated to the agent
+
+**Accepted (owner instruction, 2026-10-20).**
+
+The owner has granted standing authority for the agent to **commit and push
+without asking**. This covers:
+
+- staging changes, writing commit messages and pushing to `origin main` with
+  upstream tracking;
+- pushing follow-up fixes and documentation in the same working session;
+- deciding when a change is complete enough to commit.
+
+Standard git hygiene still applies and is not overridden:
+
+- never force-push, never rewrite or amend pushed history;
+- no build output, runtime files (`speed-race-swift-screenshot.png`,
+  `.speed_race_1974_swift_highscore`), or secrets in a commit;
+- keep commits focused and use imperative subject lines;
+- if a push fails for credentials or network reasons, report the condition and
+  leave the work committed locally — do not fabricate a successful push.
+
+The canonical Rust game remains the reference implementation; this delegation
+does not authorise changing it without a direct request.
+
+**Recorded here rather than only in the conversation** so the working agreement
+is visible to anyone reading the repository, and so future sessions do not
+re-ask the question.
